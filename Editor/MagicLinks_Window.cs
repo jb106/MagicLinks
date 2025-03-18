@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using UnityEditor;
+using Sirenix.Utilities.Editor;
 #endif
 
 using UnityEngine;
@@ -7,16 +8,12 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
-using Sirenix.OdinInspector;
-using Sirenix.Utilities.Editor;
 
 namespace MagicLinks
 {
     public class MagicLinks_Window : EditorWindow
     {
 #if UNITY_EDITOR
-        [AssetList(AutoPopulate = true)] private List<MagicVariableBase> magicVariables = new List<MagicVariableBase>();
-
         private string linksPath = "";
         private string customLinkType = "";
 
