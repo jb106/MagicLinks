@@ -2,7 +2,7 @@
     "name": "com.lonefire.magic-variables",
     "displayName": "Magic Variables",
     "version": "1.0.0",
-    "unity": "6000.0.33f1",
+    "unity": "6000.0",
     "licensesUrl": "See LICENSE.md",
     "author": {
         "name": "Jean-Baptiste Leonelli",
