@@ -1,0 +1,19 @@
+{
+    "name": "com.lonefire.magic-variables",
+    "displayName": "Magic Variables",
+    "version": "1.0.0",
+    "unity": "60000.0.33f1",
+    "licensesUrl": "See LICENSE.md",
+    "author": {
+        "name": "Jean-Baptiste Leonelli",
+        "email": "lonefiregames@gmail.com",
+        "url": "https://jeanbaptiste-leonelli.fr/"
+    },
+    "description": "Variables and Events that are external to any scripts",
+    "dependencies": {
+    },
+    "keywords": [
+        "Utility",
+        "Tool"
+    ]
+}
