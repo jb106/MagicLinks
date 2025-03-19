@@ -8,6 +8,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
+using System.Drawing.Printing;
 
 namespace MagicLinks
 {
@@ -16,6 +17,9 @@ namespace MagicLinks
 #if UNITY_EDITOR
         private string linksPath = "";
         private string customLinkType = "";
+
+        private bool generateVariable = true;
+        private bool generateEvent = true;
 
         private List<MagicVariableBase> variables = new List<MagicVariableBase>();
         private List<string> variablesValues = new List<string>();
@@ -41,6 +45,9 @@ namespace MagicLinks
 
             linksPath = EditorGUILayout.TextField("Links Path", linksPath);
             customLinkType = EditorGUILayout.TextField("Custom Link Type", customLinkType);
+
+            generateVariable = EditorGUILayout.Toggle("Generate Variable", generateVariable);
+            generateEvent = EditorGUILayout.Toggle("Generate Event", generateEvent);
 
             if (GUILayout.Button("Generate Custom Link"))
             {
@@ -83,56 +90,77 @@ namespace MagicLinks
 
         private void CreateCustomType()
         {
-            if(Directory.Exists(linksPath) == false)
+            if(linksPath == string.Empty || Directory.Exists(linksPath) == false)
             {
                 Debug.LogError("Invalid Directory");
                 return;
             }
 
-            if (CheckClassExist(customLinkType) == false)
+            if (customLinkType == string.Empty || CheckClassExist(customLinkType) == false)
             {
                 Debug.LogError("Invalid Class Name");
                 return;
             }
 
-            string variableClassName = "MagicVariable_" + customLinkType;
-            string eventClassName = "MagicEvent" + customLinkType;
+            string upperCaseName = CapitalizeFirstLetter(customLinkType);
+
+            string variableClassName = "MagicVariable_" + upperCaseName;
+            string eventClassName = "MagicEvent_" + upperCaseName;
+            string variableListenerClassName = "MagicVariableListener_" + upperCaseName;
 
             string variablesPath = Path.Combine(linksPath, "Variables");
             string eventsPath = Path.Combine(linksPath, "Events");
+            string variablesListenerPath = Path.Combine(linksPath, "VariablesListener");
 
             //Variable creation
             //----------------------------------------------------
-            if (CheckClassExist(variableClassName) == false)
+            if (generateVariable)
             {
-                if (Directory.Exists(variablesPath) == false) Directory.CreateDirectory(variablesPath);
-                AssetDatabase.Refresh();
-
-                string variableContent = variableTemplate.Replace("{TYPE}", customLinkType);
-                string variablePath = Path.Combine(variablesPath, variableClassName + ".cs");
-                File.WriteAllText(variablePath, variableContent);
-                AssetDatabase.Refresh();
+                CreateScript(variablesPath, variableClassName, upperCaseName, customLinkType, variableTemplate);
+                CreateScript(variablesListenerPath, variableListenerClassName, upperCaseName, customLinkType, variableListenerTemplate);
             }
 
             //Event creation
             //----------------------------------------------------
-            if (CheckClassExist(eventClassName) == false)
+            if (generateEvent)
             {
-                if (Directory.Exists(eventsPath) == false) Directory.CreateDirectory(eventsPath);
-                AssetDatabase.Refresh();
-
-                string eventContent = eventTemplate.Replace("{TYPE}", customLinkType);
-                string eventPath = Path.Combine(eventsPath, eventClassName + ".cs");
-                File.WriteAllText(eventPath, eventContent);
-                AssetDatabase.Refresh();
+                CreateScript(eventsPath, eventClassName, upperCaseName, customLinkType, eventTemplate);
             }
         }
 
         private bool CheckClassExist(string cN)
         {
+            var baseTypes = typeof(object).Assembly.GetTypes()
+            .Where(t => t.IsPrimitive || t == typeof(string) || t == typeof(decimal));
+
+            foreach (var type in baseTypes)
+            {
+                string alias = typeAliases.ContainsKey(type) ? typeAliases[type] : type.ToString();
+                if (cN == alias) return true;
+            }
+
             return AppDomain.CurrentDomain.GetAssemblies()
             .SelectMany(a => a.GetTypes())
             .Any(t => t.Name == cN || t.FullName == cN);
+        }
+
+        private void CreateScript(string path, string className, string labelType, string realType, string template)
+        {
+            if (CheckClassExist(className)) return;
+
+            if (Directory.Exists(path) == false) Directory.CreateDirectory(path);
+            AssetDatabase.Refresh();
+
+            Debug.Log(labelType);
+            Debug.Log(realType);
+
+            string content = template.Replace("{TYPELABEL}", labelType).Replace("{TYPE}", realType);
+            content = content.Replace("{TYPE}", realType);
+
+            string finalPath = Path.Combine(path, className + ".cs");
+            File.WriteAllText(finalPath, content);
+
+            AssetDatabase.Refresh();
         }
 
         //--------------------------------------------------------
@@ -142,8 +170,8 @@ namespace MagicLinks
 
         namespace MagicLinks
         {
-            [CreateAssetMenu(menuName = ""MagicLinks/Variables/{TYPE}"", fileName = ""{TYPE}Variable"")]
-            public class MagicVariable_{TYPE} : MagicVariable<{TYPE}> { }
+            [CreateAssetMenu(menuName = ""MagicLinks/Variables/{TYPELABEL}"", fileName = ""{TYPELABEL}Variable"")]
+            public class MagicVariable_{TYPELABEL} : MagicVariable<{TYPE}> { }
         }";
 
         string eventTemplate = @"
@@ -151,9 +179,47 @@ namespace MagicLinks
 
         namespace MagicLinks
         {
-            [CreateAssetMenu(menuName = ""MagicLinks/Events/{TYPE}"", fileName = ""{TYPE}Event"")]
-            public class MagicEvent_{TYPE} : MagicEvent<{TYPE}> { }
+            [CreateAssetMenu(menuName = ""MagicLinks/Events/{TYPELABEL}"", fileName = ""{TYPELABEL}Event"")]
+            public class MagicEvent_{TYPELABEL} : MagicEvent<{TYPE}> { }
         }";
+
+        string variableListenerTemplate = @"
+        using UnityEngine;
+
+        namespace MagicLinks
+        {
+            public class MagicVariableListener_{TYPELABEL} : MagicVariableListener<{TYPE}>
+            {
+                [SerializeField] private MagicVariable_{TYPELABEL} _variable;
+                protected override MagicVariable<{TYPE}> Variable => _variable;
+            }
+        }
+        ";
+
+        private readonly Dictionary<Type, string> typeAliases = new Dictionary<Type, string>
+        {
+            { typeof(bool), "bool" },
+            { typeof(byte), "byte" },
+            { typeof(sbyte), "sbyte" },
+            { typeof(char), "char" },
+            { typeof(decimal), "decimal" },
+            { typeof(double), "double" },
+            { typeof(float), "float" },
+            { typeof(int), "int" },
+            { typeof(uint), "uint" },
+            { typeof(long), "long" },
+            { typeof(ulong), "ulong" },
+            { typeof(short), "short" },
+            { typeof(ushort), "ushort" },
+            { typeof(string), "string" },
+            { typeof(object), "object" }
+        };
+
+        private string CapitalizeFirstLetter(string input)
+        {
+            if (string.IsNullOrEmpty(input)) return input;
+            return char.ToUpper(input[0]) + input.Substring(1);
+        }
 #endif
     }
 }
