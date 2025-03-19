@@ -1,8 +1,6 @@
 #if UNITY_EDITOR
 using UnityEditor;
 using Sirenix.Utilities.Editor;
-#endif
-
 using UnityEngine;
 using System;
 using System.IO;
@@ -13,7 +11,6 @@ namespace MagicLinks
 {
     public class MagicLinks_Window : EditorWindow
     {
-#if UNITY_EDITOR
         private string linksPath = "";
         private string customLinkType = "";
 
@@ -219,6 +216,6 @@ namespace MagicLinks
             if (string.IsNullOrEmpty(input)) return input;
             return char.ToUpper(input[0]) + input.Substring(1);
         }
-#endif
     }
 }
+#endif
