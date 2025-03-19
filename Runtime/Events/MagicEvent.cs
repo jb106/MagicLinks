@@ -21,4 +21,20 @@ namespace MagicLinks
             OnEventRaised?.Invoke(value);
         }
     }
+
+    public class MagicEvent : ScriptableObject, IEvent
+    {
+        public event Action OnEventRaised;
+
+        [Button]
+        private void ManualRaise()
+        {
+            Raise();
+        }
+
+        public void Raise()
+        {
+            OnEventRaised?.Invoke();
+        }
+    }
 }
