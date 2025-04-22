@@ -1,0 +1,7 @@
+<engine:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:engine="UnityEngine.UIElements" xmlns:editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <engine:VisualElement name="Asset" style="flex-grow: 1; background-color: rgb(181, 181, 181); justify-content: space-between; align-items: center; flex-direction: row; align-content: auto; padding-top: 10px; padding-right: 10px; padding-bottom: 10px; padding-left: 10px;">
+        <engine:VisualElement style="flex-grow: 0; background-color: rgba(255, 255, 255, 0); width: 30px; height: 30px; background-image: url(&quot;project://database/Assets/MagicLinks/Editor/Sprites/cube.png?fileID=2800000&amp;guid=a848f1e15b60e1c4c9ff5132123e1588&amp;type=3#cube&quot;);" />
+        <engine:Label text="Asset name" name="AssetName" style="color: rgb(2, 2, 2); font-size: 16px; -unity-text-align: upper-left; flex-grow: 1; padding-left: 4px;" />
+        <engine:Label text="Value" name="AssetValue" style="color: rgb(2, 2, 2); font-size: 16px; -unity-text-align: upper-right; flex-grow: 1; padding-left: 4px;" />
+    </engine:VisualElement>
+</engine:UXML>

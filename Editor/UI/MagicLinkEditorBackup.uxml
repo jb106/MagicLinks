@@ -1,0 +1,21 @@
+<engine:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:engine="UnityEngine.UIElements" xmlns:editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <engine:Template name="Folder" src="project://database/Assets/MagicLinks/Editor/Folder.uxml?fileID=9197481963319205126&amp;guid=171112390c8c07f46b67a538ae6a2854&amp;type=3#Folder" />
+    <engine:Template name="Asset" src="project://database/Assets/MagicLinks/Editor/Asset.uxml?fileID=9197481963319205126&amp;guid=d1719f26087cec84a93e07488912f91d&amp;type=3#Asset" />
+    <Style src="project://database/Assets/MagicLinks/Editor/MagicLinkEditor.uss?fileID=7433441132597879392&amp;guid=07d5adbb4eb8320469843d90b76b41de&amp;type=3#MagicLinkEditor" />
+    <engine:VisualElement style="width: auto; height: 10000px; flex-direction: row;">
+        <engine:VisualElement name="LeftPanel" style="flex-grow: 0; flex-direction: column; padding-right: 0; background-color: rgb(51, 51, 51); padding-top: 0; padding-bottom: 0; padding-left: 0;">
+            <engine:VisualElement name="CreateFolderRoot" style="flex-grow: 0; flex-direction: row; justify-content: space-around; align-items: auto; align-self: auto; align-content: auto;">
+                <engine:TextField placeholder-text="folder name..." is-delayed="false" multiline="false" name="CreateFolderInput" style="flex-grow: 0; width: auto; opacity: 1; min-width: 100px; max-width: 100px;" />
+                <engine:Button text="Create Folder" name="CreateFolderButton" style="flex-grow: 0;" />
+            </engine:VisualElement>
+            <engine:ScrollView name="FolderList" focusable="false" style="width: auto; height: auto; flex-grow: 1; justify-content: flex-start; opacity: 1; overflow: visible; visibility: visible; display: flex; background-color: rgb(85, 85, 85); -unity-background-scale-mode: stretch-to-fill; -unity-font-style: normal;">
+                <engine:Instance template="Folder" />
+            </engine:ScrollView>
+        </engine:VisualElement>
+        <engine:VisualElement name="RightPanel" style="flex-grow: 1; flex-direction: column; padding-right: 0; background-color: rgb(51, 51, 51); padding-top: 0; padding-bottom: 0; padding-left: 0;">
+            <engine:ScrollView name="AssetsList" focusable="false" style="width: auto; height: auto; flex-grow: 1; justify-content: flex-start; opacity: 1; overflow: visible; visibility: visible; display: flex; background-color: rgba(255, 0, 0, 0); -unity-background-scale-mode: stretch-to-fill; -unity-font-style: normal; padding-top: 10px; padding-right: 10px; padding-bottom: 10px; padding-left: 10px;">
+                <engine:Instance template="Asset" name="Asset" />
+            </engine:ScrollView>
+        </engine:VisualElement>
+    </engine:VisualElement>
+</engine:UXML>

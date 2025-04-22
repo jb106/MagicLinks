@@ -1,0 +1,18 @@
+.BasicListElement {
+    border-top-width: 0;
+    border-right-width: 2px;
+    border-bottom-width: 2px;
+    border-left-width: 2px;
+    border-left-color: rgb(0, 0, 0);
+    border-right-color: rgb(0, 0, 0);
+    border-top-color: rgb(0, 0, 0);
+    border-bottom-color: rgb(0, 0, 0);
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 0;
+    flex-direction: row;
+    flex-grow: 0;
+    flex-basis: auto;
+    justify-content: flex-start;
+}

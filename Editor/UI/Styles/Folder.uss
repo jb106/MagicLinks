@@ -1,0 +1,19 @@
+.folder:hover {
+    background-color: rgb(255, 255, 255);
+    opacity: 1;
+    display: flex;
+}
+
+.folder {
+    width: 100%;
+    height: 50px;
+    background-color: rgb(196, 196, 196);
+}
+
+.folder-selected {
+    background-color: rgb(101, 136, 200);
+}
+
+.folder-selected:hover {
+    background-color: rgb(150, 186, 252);
+}
