@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 [DefaultExecutionOrder(-1000)]
 public class MagicVariablesTemplate : MonoBehaviour
@@ -14,13 +15,15 @@ public class MagicVariablesTemplate : MonoBehaviour
     
     public class VariableEntry
     {
-        public string key; //Nom de la variable
-        public string type; // Type de la variable
+        public string key;
+        public string type;
+        public bool isEvent;
 
-        public VariableEntry(string key, string type)
+        public VariableEntry(string key, string type, bool isEvent)
         {
             this.key = key;
             this.type = type;
+            this.isEvent = isEvent;
         }
     }
 
@@ -35,13 +38,14 @@ public class MagicVariablesTemplate : MonoBehaviour
         List<DynamicVariable> variables = new List<DynamicVariable>();
         foreach (var v in GetExistingVariables())
         {
-            initialVariables.Add(new VariableEntry(v.vName, v.vLabelType.ToUpper()));
+            initialVariables.Add(new VariableEntry(v.vName, v.vLabelType.ToUpper(), v.isEvent));
         }
 
         // Feed the variables
         foreach (var entry in initialVariables)
         {
-            string dictName = entry.type.ToUpper();
+            
+            string dictName = entry.type.ToUpper() + (entry.isEvent ?  MagicLinksUtilities.EventDict : "");
             FieldInfo field = GetType().GetField(dictName, BindingFlags.Public | BindingFlags.Instance);
 
             if (field != null)
@@ -49,18 +53,12 @@ public class MagicVariablesTemplate : MonoBehaviour
                 var dict = field.GetValue(this);
                 Type dictType = dict.GetType();
 
-                Type wrapperType = dictType.GetGenericArguments()[1];
+                Type keyType = dictType.GetGenericArguments()[0];
+                Type expectedWrapperType = GetMagicType(entry.isEvent);
+                Type valueInnerType = dictType.GetGenericArguments()[1].GetGenericArguments()[0]; // T dans MagicVariableObservable<T> ou MagicEventObservable<T>
 
-                // On récupère le type T de MagicVariableObservable<T>
-                Type innerType = wrapperType.IsGenericType &&
-                                 wrapperType.GetGenericTypeDefinition() == typeof(MagicVariableObservable<>)
-                    ? wrapperType.GetGenericArguments()[0]
-                    : wrapperType;
-
-                // Crée une instance de MagicVariableObservable<T>
-                object defaultValue = Activator.CreateInstance(
-                    typeof(MagicVariableObservable<>).MakeGenericType(innerType)
-                );
+                Type constructedType = expectedWrapperType.MakeGenericType(valueInnerType);
+                object defaultValue = Activator.CreateInstance(constructedType);
 
                 MethodInfo addMethod = dictType.GetMethod("Add");
                 addMethod.Invoke(dict, new object[] { entry.key, defaultValue });
@@ -71,12 +69,11 @@ public class MagicVariablesTemplate : MonoBehaviour
             }
         }
     }
-    
-    private object GetDefault(Type t)
+
+    private Type GetMagicType(bool isEvent)
     {
-        if (t.IsValueType)
-            return Activator.CreateInstance(t);
-        return null;
+        if (isEvent) return typeof(MagicEventObservable<>);
+        return typeof(MagicVariableObservable<>);
     }
     
     private List<DynamicVariable> GetExistingVariables()
@@ -99,6 +96,16 @@ public class MagicVariablesTemplate : MonoBehaviour
         }
         
         return existingVariables;
+    }
+}
+
+public class MagicEventObservable<T>
+{
+    public event Action<T> OnEventRaised;
+
+    public void Raise(T v)
+    {
+        OnEventRaised?.Invoke(v);
     }
 }
 
@@ -126,19 +133,29 @@ public class MagicVariableObservable<T>
 }
 /*
  
-public static class MagicVariablesBootstrapper
+static class MagicLinksBootstrapper
 {
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     public static void Init()
     {
-        if (UnityEngine.Object.FindFirstObjectByType<MagicVariables>() == null)
+        if (UnityEngine.Object.FindFirstObjectByType<MagicLinksManager>() == null)
         {
-            GameObject obj = new GameObject("MagicVariables");
+            GameObject obj = new GameObject("MagicLinksManager");
             UnityEngine.Object.DontDestroyOnLoad(obj);
-            obj.AddComponent<MagicVariables>();
+            obj.AddComponent<MagicLinksManager>();
         }
     }
 }
 
+public static class MagicVariables
+{
+    //MAGICVARIABLESGETTER
+}
+
+public static class MagicEvents
+{
+    //MAGICEVENTSGETTER
+}
 */
+
 #endif

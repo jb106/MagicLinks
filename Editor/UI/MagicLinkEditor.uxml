@@ -1,25 +1,23 @@
 <engine:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:engine="UnityEngine.UIElements" xmlns:editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
-    <engine:Template name="Folder" src="project://database/Assets/MagicLinks/Editor/UI/Folder.uxml?fileID=9197481963319205126&amp;guid=171112390c8c07f46b67a538ae6a2854&amp;type=3#Folder" />
     <Style src="project://database/Assets/MagicLinks/Editor/UI/Styles/MagicLinkEditor.uss?fileID=7433441132597879392&amp;guid=07d5adbb4eb8320469843d90b76b41de&amp;type=3#MagicLinkEditor" />
     <engine:VisualElement style="width: auto; height: 10000px; flex-direction: row;">
         <engine:VisualElement name="LeftPanel" style="flex-grow: 0; flex-direction: column; padding-right: 0; background-color: rgb(51, 51, 51); padding-top: 0; padding-bottom: 0; padding-left: 0;">
             <engine:ScrollView name="FolderList" focusable="false" style="width: auto; height: auto; flex-grow: 1; justify-content: flex-start; opacity: 1; overflow: visible; visibility: visible; display: flex; background-color: rgb(85, 85, 85); -unity-background-scale-mode: stretch-to-fill; -unity-font-style: normal;">
-                <engine:Instance template="Folder" enabled="true" style="visibility: visible; display: none;" />
+                <engine:Button text="Refresh Scripts" name="RefreshScripts" />
+                <engine:VisualElement style="flex-grow: 1; height: 3px; background-color: rgba(0, 0, 0, 0.39); margin-top: 3px; margin-right: 3px; margin-bottom: 3px; margin-left: 3px;" />
+                <engine:VisualElement name="CreateType" class="LeftListElement" style="background-color: rgb(85, 85, 85);">
+                    <engine:TextField placeholder-text="type..." is-delayed="false" multiline="false" name="TypeName" class="LeftListInnerElement" style="opacity: 1;" />
+                    <engine:Button text="Create Type" name="CreateTypeButton" class="LeftListInnerElement" style="flex-grow: 0;" />
+                </engine:VisualElement>
+                <engine:Foldout text="Custom Types" name="CustomTypesFoldout" value="true" />
             </engine:ScrollView>
         </engine:VisualElement>
         <engine:VisualElement name="RightPanel" style="flex-grow: 1; flex-direction: column; padding-right: 0; background-color: rgb(51, 51, 51); padding-top: 0; padding-bottom: 0; padding-left: 0;">
             <engine:ScrollView name="AssetsList" focusable="false" style="width: auto; height: auto; flex-grow: 1; justify-content: flex-start; opacity: 1; overflow: visible; visibility: visible; display: flex; background-color: rgba(255, 0, 0, 0); -unity-background-scale-mode: stretch-to-fill; -unity-font-style: normal;">
-                <engine:VisualElement name="CreateType" class="BasicListElement" style="background-color: rgb(85, 85, 85);">
-                    <engine:TextField placeholder-text="type..." is-delayed="false" multiline="false" name="TypeName" style="opacity: 1;" />
-                    <engine:Button text="Create Type" name="CreateTypeButton" style="flex-grow: 0;" />
-                </engine:VisualElement>
                 <engine:VisualElement name="CreateVariable" class="BasicListElement" style="background-color: rgb(85, 85, 85);">
-                    <engine:TextField placeholder-text="name..." is-delayed="false" multiline="false" name="VariableName" style="opacity: 1;" />
-                    <engine:DropdownField name="DropdownVariableType" index="0" />
-                    <engine:Button text="Create variable" name="CreateVariableButton" style="flex-grow: 0;" />
-                </engine:VisualElement>
-                <engine:VisualElement name="ListTitle" class="BasicListElement" style="background-color: rgb(85, 85, 85);">
-                    <engine:Label text="Variables List" style="align-items: auto; width: 100%; height: auto; -unity-text-align: middle-left; font-size: 20px;" />
+                    <engine:TextField placeholder-text="name..." is-delayed="false" multiline="false" name="VariableName" class="ConfigurationElement" style="opacity: 1;" />
+                    <engine:DropdownField name="DropdownVariableType" index="0" class="ConfigurationElement" />
+                    <engine:Button text="Create Magic Element" name="CreateVariableButton" class="ConfigurationElement" style="flex-grow: 0;" />
                 </engine:VisualElement>
                 <engine:VisualElement name="VariablesContainer" style="flex-grow: 1;" />
             </engine:ScrollView>
