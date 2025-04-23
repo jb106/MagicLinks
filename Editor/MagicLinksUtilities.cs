@@ -11,6 +11,10 @@ public static class MagicLinksUtilities
     public const string ResourcesVariablesPath = "MagicVariables/Variables";
     
     public const string EventDict = "_EVENT";
+    
+    public const string MagicTypeVariable = "Variable";
+    public const string MagicTypeEvent = "Event";
+    public const string MagicTypeEventVoid = "EventVoid";
 
     public const string String = "string";
     public const string Bool = "bool";

@@ -2,10 +2,9 @@
     <Style src="project://database/Assets/MagicLinks/Editor/UI/Styles/SingleVariable.uss?fileID=7433441132597879392&amp;guid=2ff01fc63aaf0f44e989c5fb29a2d62d&amp;type=3#SingleVariable" />
     <engine:VisualElement name="Variable" style="height: 30px; flex-direction: row; flex-wrap: nowrap; width: 100%; background-color: rgb(45, 45, 45); align-items: center; justify-content: flex-start; border-left-width: 0; border-right-width: 0; border-left-color: rgb(0, 0, 0); border-right-color: rgb(0, 0, 0); border-top-color: rgb(0, 0, 0); border-bottom-color: rgb(0, 0, 0); border-top-width: 0; border-bottom-width: 2px;">
         <engine:VisualElement name="Icon" class="singleVariableElement" style="background-image: url(&quot;project://database/Assets/MagicLinks/Editor/Sprites/EventCustom_2.png?fileID=2800000&amp;guid=c223369c0b50e4043bfe63f5fb559af7&amp;type=3#EventCustom_2&quot;); width: 20px; height: 20px;" />
-        <engine:Label text="Variable name" name="Name" class="singleVariableElement minSize" style="-unity-font-style: bold;" />
+        <engine:Label text="Variable name" name="Name" selectable="true" class="singleVariableElement minSize" style="-unity-font-style: bold;" />
         <engine:DropdownField name="Type" class="singleVariableElement minSize" />
-        <engine:Label text="Event" />
-        <engine:Toggle name="IsEvent" style="padding-right: 30px;" />
+        <engine:DropdownField name="MagicType" index="0" class="singleVariableElement minSize" />
         <engine:Button text="Delete" name="DeleteButton" class="singleVariableElement" />
     </engine:VisualElement>
 </engine:UXML>

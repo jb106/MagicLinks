@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEditor.UIElements;
@@ -24,24 +25,25 @@ public class MagicLinkEditor : EditorWindow
     
     const string VariableDictTemplate = "public Dictionary<string, MagicVariableObservable<TYPE>> NAME = new();";
     const string EventDictTemplate = "public Dictionary<string, MagicEventObservable<TYPE>> NAME = new();";
+    const string EventVoidDictTemplate = "public Dictionary<string, MagicEventVoidObservable> VOID = new();";
     
     const string VariableGetterTemplate = "public static Dictionary<string, MagicVariableObservable<TYPE>> NAME = MagicLinksManager.Instance.NAME;";
-    const string EventGetterTemplate = "public static Dictionary<string, MagicEventObservable<TYPE>> NAME = MagicLinksManager.Instance.NAME;";
+    const string EventGetterTemplate = "public static Dictionary<string, MagicEventObservable<TYPE>> SHORT = MagicLinksManager.Instance.NAME;";
+    const string EventVoidGetterTemplate = "public static Dictionary<string, MagicEventVoidObservable> VOID = MagicLinksManager.Instance.VOID;";
 
     const string RefreshScriptsButton = "RefreshScripts";
     
     const string CreateTypeButtonClass = "CreateTypeButton";
     const string CreateVariableButtonClass = "CreateVariableButton";
-    const string DropdownVariableTypeClass = "DropdownVariableType";
     const string TypeTextFieldClass = "TypeName";
     const string VariableNameTextFieldClass = "VariableName";
     const string VariablesContainerVisualElementClass = "VariablesContainer";
     
     const string SingleVariableIcon = "Icon";
     const string SingleVariableName = "Name";
+    const string SingleVariableMagicType = "MagicType";
     const string SingleVariableType = "Type";
     const string SingleVariableDeleteButton = "DeleteButton";
-    const string SingleVariableIsEvent = "IsEvent";
     
     const string CustomTypesFoldout = "CustomTypesFoldout";
     const string CustomTypeElementName = "CustomTypeName";
@@ -104,6 +106,7 @@ public class MagicLinkEditor : EditorWindow
         if (config.customTypes.Contains(type) || GetBaseTypes().ContainsValue(type)) return;
             
         config.customTypes.Add(type);
+        EditorUtility.SetDirty(config);
         UpdateTypes();
         UpdateVariablesUI();
         GenerateMagicVariablesScript(false);
@@ -129,23 +132,15 @@ public class MagicLinkEditor : EditorWindow
             foldout.Add(customTypeElement);
         }
         
-        //-------------------
-        DropdownField field = rootVisualElement.Q<DropdownField>(DropdownVariableTypeClass);
-
-        field.choices.Clear();
-
-        foreach (string t in GetAllTypes())
-        {
-            field.choices.Add(t);
-        }
-        
-        if(field.index == -1) field.index = 0;
         AssetDatabase.Refresh();
     }
 
     private void OnCustomTypeElementDeleteButton(string customType)
     {
-        GetTypesConfiguration().customTypes.Remove(customType);
+        MagicLinksTypesConfiguration config = GetTypesConfiguration();
+
+        config.customTypes.Remove(customType);
+        EditorUtility.SetDirty(config);
         UpdateTypes();
         GenerateMagicVariablesScript(false);
     }
@@ -176,7 +171,6 @@ public class MagicLinkEditor : EditorWindow
     private void CreateVariable()
     {
         string variableName = rootVisualElement.Q<TextField>(VariableNameTextFieldClass).value;
-        string variableType = rootVisualElement.Q<DropdownField>(DropdownVariableTypeClass).value;
         
         CreateVariablesFolder();
         
@@ -189,8 +183,8 @@ public class MagicLinkEditor : EditorWindow
         
         Dictionary<string, string> baseTypes = GetBaseTypes();
 
-        newVariable.vTruelType = GetTrueType(variableType);
-        newVariable.vLabelType = variableType;
+        newVariable.vTruelType = GetTrueType(baseTypes.FirstOrDefault().Key);
+        newVariable.vLabelType = baseTypes.FirstOrDefault().Key;
         
         newVariable.vPath = newVariablePath;
         
@@ -242,18 +236,30 @@ public class MagicLinkEditor : EditorWindow
             
             DropdownField field = newUIVariable.Q<DropdownField>(SingleVariableType);
 
-            foreach (string t in GetAllTypes())
+            if (v.IsVoid())
             {
-                field.choices.Add(t);
+                field.style.display = new StyleEnum<DisplayStyle>(DisplayStyle.None);
             }
+            else
+            {
+                foreach (string t in GetAllTypes())
+                {
+                    field.choices.Add(t);
+                }
 
-            field.index = field.choices.IndexOf(v.vLabelType);
-            field.RegisterValueChangedCallback((newType) => { OnSingleVariableTypeChanged(v, newType.newValue); });
-                
-            Toggle isEventToggle = newUIVariable.Q<Toggle>(SingleVariableIsEvent);
-                
-            isEventToggle.SetValueWithoutNotify(v.isEvent);
-            isEventToggle.RegisterValueChangedCallback((newBool) => { OnIsEventChanged(v, newBool.newValue); });
+                field.index = field.choices.IndexOf(v.vLabelType);
+                field.RegisterValueChangedCallback((newType) => { OnSingleVariableTypeChanged(v, newType.newValue); });
+            }
+            
+            DropdownField magicType = newUIVariable.Q<DropdownField>(SingleVariableMagicType);
+            
+            magicType.choices.Clear();
+            magicType.choices.Add(MagicLinksUtilities.MagicTypeVariable);
+            magicType.choices.Add(MagicLinksUtilities.MagicTypeEvent);
+            magicType.choices.Add(MagicLinksUtilities.MagicTypeEventVoid);
+
+            magicType.index = v.magicType;
+            magicType.RegisterValueChangedCallback((newMagicType) => { OnMagicTypeChanged(v, magicType.choices.IndexOf(newMagicType.newValue)); });
             
             newUIVariable.Q<VisualElement>(SingleVariableIcon).style.backgroundImage = GetVariableIcon(v.vLabelType);
             newUIVariable.Q<Label>(SingleVariableName).text = v.vName;
@@ -261,6 +267,16 @@ public class MagicLinkEditor : EditorWindow
             
             variablesContainer.Add(newUIVariable);
         }
+    }
+
+    private void OnMagicTypeChanged(DynamicVariable variable, int newMagicType)
+    {
+        DynamicVariable variableToUpdate = JsonUtility.FromJson<DynamicVariable>(File.ReadAllText(variable.vPath));
+        variableToUpdate.magicType = newMagicType;
+        File.WriteAllText(variable.vPath, JsonUtility.ToJson(variableToUpdate, true));
+        
+        AssetDatabase.Refresh();
+        UpdateVariablesUI();
     }
 
     private void AddInitialSelectorToVariableUI(DynamicVariable variable, VisualElement variableUI)
@@ -300,21 +316,12 @@ public class MagicLinkEditor : EditorWindow
         DynamicVariable variableToUpdate = JsonUtility.FromJson<DynamicVariable>(File.ReadAllText(variable.vPath));
         
         variableToUpdate.vTruelType = GetTrueType(newType);
+        variableToUpdate.vLabelType = newType;
         
         File.WriteAllText(variable.vPath, JsonUtility.ToJson(variableToUpdate, true));
         AssetDatabase.Refresh();
         
         UpdateVariablesUI();
-    }
-
-    private void OnIsEventChanged(DynamicVariable variable, bool newValue)
-    {
-        DynamicVariable variableToUpdate = JsonUtility.FromJson<DynamicVariable>(File.ReadAllText(variable.vPath));
-        
-        variableToUpdate.isEvent = newValue;
-        
-        File.WriteAllText(variable.vPath, JsonUtility.ToJson(variableToUpdate, true));
-        AssetDatabase.Refresh();
     }
 
     private void OnDeleteSingleVariable(string path)
@@ -379,6 +386,8 @@ public class MagicLinkEditor : EditorWindow
             variables += GetDict(EventDictTemplate, customType, customType.ToUpper() + MagicLinksUtilities.EventDict);
         }
 
+        variables += EventVoidDictTemplate;
+
         classContent = classContent.Replace("//VARIABLESLISTS", variables);
         classContent = classContent.Replace("/*", string.Empty);
         classContent = classContent.Replace("*/", string.Empty);
@@ -398,12 +407,16 @@ public class MagicLinkEditor : EditorWindow
         foreach (string customType in GetAllTypes())
         {
             string eventGetter = GetDict(EventGetterTemplate, customType, customType.ToUpper() + MagicLinksUtilities.EventDict);
+
+            eventGetter = eventGetter.Replace("SHORT", customType.ToUpper());
             
             var regex = new Regex(Regex.Escape(MagicLinksUtilities.EventDict));
             eventsGetter = regex.Replace(eventsGetter, MagicLinksUtilities.EventDict, 1);
             
             eventsGetter += eventGetter;
         }
+
+        eventsGetter += EventVoidGetterTemplate;
 
         classContent = classContent.Replace("//MAGICEVENTSGETTER", eventsGetter);
         
@@ -504,11 +517,21 @@ public class DynamicVariable
     public string vTruelType;
     public string vPath;
     public string initialValue;
-    public bool isEvent;
+    public int magicType;
 
+    public bool IsEvent()
+    {
+        return magicType != 0;
+    }
+
+    public bool IsVoid()
+    {
+        return magicType == 2;
+    }
+    
     public string GetDictName()
     {
-        if (isEvent) return vName + MagicLinksUtilities.EventDict;
+        if (magicType != 0) return vName + MagicLinksUtilities.EventDict;
 
         return vName;
     }

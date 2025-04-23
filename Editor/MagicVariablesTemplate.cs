@@ -5,6 +5,7 @@ using System.IO;
 using System.Reflection;
 using UnityEngine;
 using Object = UnityEngine.Object;
+using MagicLinks.Observables;
 
 [DefaultExecutionOrder(-1000)]
 public class MagicVariablesTemplate : MonoBehaviour
@@ -17,13 +18,13 @@ public class MagicVariablesTemplate : MonoBehaviour
     {
         public string key;
         public string type;
-        public bool isEvent;
+        public int magicType;
 
-        public VariableEntry(string key, string type, bool isEvent)
+        public VariableEntry(string key, string type, int magicType)
         {
             this.key = key;
             this.type = type;
-            this.isEvent = isEvent;
+            this.magicType = magicType;
         }
     }
 
@@ -38,34 +39,40 @@ public class MagicVariablesTemplate : MonoBehaviour
         List<DynamicVariable> variables = new List<DynamicVariable>();
         foreach (var v in GetExistingVariables())
         {
-            initialVariables.Add(new VariableEntry(v.vName, v.vLabelType.ToUpper(), v.isEvent));
+            initialVariables.Add(new VariableEntry(v.vName, v.vLabelType.ToUpper(), v.magicType));
         }
 
         // Feed the variables
         foreach (var entry in initialVariables)
         {
-            
-            string dictName = entry.type.ToUpper() + (entry.isEvent ?  MagicLinksUtilities.EventDict : "");
-            FieldInfo field = GetType().GetField(dictName, BindingFlags.Public | BindingFlags.Instance);
-
-            if (field != null)
+            if (entry.magicType == 2)
             {
-                var dict = field.GetValue(this);
-                Type dictType = dict.GetType();
-
-                Type keyType = dictType.GetGenericArguments()[0];
-                Type expectedWrapperType = GetMagicType(entry.isEvent);
-                Type valueInnerType = dictType.GetGenericArguments()[1].GetGenericArguments()[0]; // T dans MagicVariableObservable<T> ou MagicEventObservable<T>
-
-                Type constructedType = expectedWrapperType.MakeGenericType(valueInnerType);
-                object defaultValue = Activator.CreateInstance(constructedType);
-
-                MethodInfo addMethod = dictType.GetMethod("Add");
-                addMethod.Invoke(dict, new object[] { entry.key, defaultValue });
+                /*VOID.Add(entry.key, new MagicEventVoidObservable());*/
             }
             else
             {
-                Debug.LogWarning($"Dictionnaire de type {entry.type} introuvable dans MagicVariables.");
+                string dictName = entry.type.ToUpper() + (entry.magicType == 1 ?  MagicLinksUtilities.EventDict : "");
+                FieldInfo field = GetType().GetField(dictName, BindingFlags.Public | BindingFlags.Instance);
+
+                if (field != null)
+                {
+                    var dict = field.GetValue(this);
+                    Type dictType = dict.GetType();
+
+                    Type keyType = dictType.GetGenericArguments()[0];
+                    Type expectedWrapperType = GetMagicType(entry.magicType == 1);
+                    Type valueInnerType = dictType.GetGenericArguments()[1].GetGenericArguments()[0]; // T dans MagicVariableObservable<T> ou MagicEventObservable<T>
+
+                    Type constructedType = expectedWrapperType.MakeGenericType(valueInnerType);
+                    object defaultValue = Activator.CreateInstance(constructedType);
+
+                    MethodInfo addMethod = dictType.GetMethod("Add");
+                    addMethod.Invoke(dict, new object[] { entry.key, defaultValue });
+                }
+                else
+                {
+                    Debug.LogWarning($"Dictionnaire de type {entry.type} introuvable dans MagicVariables.");
+                }
             }
         }
     }
@@ -99,40 +106,53 @@ public class MagicVariablesTemplate : MonoBehaviour
     }
 }
 
-public class MagicEventObservable<T>
+namespace MagicLinks.Observables
 {
-    public event Action<T> OnEventRaised;
-
-    public void Raise(T v)
+    public class MagicEventObservable<T>
     {
-        OnEventRaised?.Invoke(v);
-    }
-}
+        public event Action<T> OnEventRaised;
 
-public class MagicVariableObservable<T>
-{
-    private T _value;
-
-    public T Value
-    {
-        get => _value;
-        set
+        public void Raise(T v)
         {
-            if (!Equals(_value, value))
-            {
-                _value = value;
-                OnValueChanged?.Invoke(_value);
-            }
+            OnEventRaised?.Invoke(v);
+        }
+    }
+    
+    public class MagicEventVoidObservable
+    {
+        public event Action OnEventRaised;
+
+        public void Raise()
+        {
+            OnEventRaised?.Invoke();
         }
     }
 
-    public event Action<T> OnValueChanged;
+    public class MagicVariableObservable<T>
+    {
+        private T _value;
 
-    public MagicVariableObservable() => _value = default;
-    public MagicVariableObservable(T initialValue) => _value = initialValue;
+        public T Value
+        {
+            get => _value;
+            set
+            {
+                if (!Equals(_value, value))
+                {
+                    _value = value;
+                    OnValueChanged?.Invoke(_value);
+                }
+            }
+        }
+
+        public event Action<T> OnValueChanged;
+
+        public MagicVariableObservable() => _value = default;
+        public MagicVariableObservable(T initialValue) => _value = initialValue;
+    }
 }
 /*
- 
+
 static class MagicLinksBootstrapper
 {
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
