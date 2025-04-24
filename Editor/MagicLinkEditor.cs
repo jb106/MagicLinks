@@ -23,6 +23,8 @@ public class MagicLinkEditor : EditorWindow
     const string MagicVariablesTemplate = "Editor/MagicVariablesTemplate.cs";
     const string MagicVariableClassName = "MagicLinksManager";
     
+    const string TemplateListenerSeparation = "#SEPARATION";
+    
     const string VariableDictTemplate = "public Dictionary<string, MagicVariableObservable<TYPE>> NAME = new();";
     const string EventDictTemplate = "public Dictionary<string, MagicEventObservable<TYPE>> NAME = new();";
     const string EventVoidDictTemplate = "public Dictionary<string, MagicEventVoidObservable> VOID = new();";
@@ -75,7 +77,9 @@ public class MagicLinkEditor : EditorWindow
         UpdateCategories();
         UpdateVariablesUI();
         
+        ClearListeners();
         GenerateMagicVariablesScript(true);
+        GenerateListenersScripts();
     }
 
     private void HookEvents()
@@ -93,7 +97,9 @@ public class MagicLinkEditor : EditorWindow
         UpdateCategories();
         UpdateVariablesUI();
         
+        ClearListeners();
         GenerateMagicVariablesScript(false);
+        GenerateListenersScripts();
     }
 
     //CREATE TYPE
@@ -489,6 +495,11 @@ public class MagicLinkEditor : EditorWindow
     
     //---------------------------------
 
+    private void ClearListeners()
+    {
+        MagicLinksConfiguration config = GetConfiguration();
+    }
+
     private void GenerateMagicVariablesScript(bool ifMissing)
     {
         string classContent = GetMagicVariablesScriptContent();
@@ -502,6 +513,24 @@ public class MagicLinkEditor : EditorWindow
         File.WriteAllText(newClassPath, classContent);
         
         AssetDatabase.Refresh();
+    }
+
+    private void GenerateListenersScripts()
+    {
+        string template = File.ReadAllText(GetPackageRelativePath(MagicVariablesTemplate));
+        template = template.Replace("/*", string.Empty);
+        template = template.Replace("*/", string.Empty);
+        
+        string[] separated = template.Split(TemplateListenerSeparation);
+        
+        //Listeners
+        
+        string listenerPath = Path.Combine(MagicLinksUtilities.ConfigurationPath, "IntListener.cs");
+        string listenerContent = CreateEventListenerContent(separated[1], "IntListener");
+        File.WriteAllText(listenerPath, listenerContent);
+        
+        AssetDatabase.Refresh();
+
     }
 
     private string GetMagicVariablesScriptContent()
@@ -558,7 +587,16 @@ public class MagicLinkEditor : EditorWindow
 
         classContent = classContent.Replace("//MAGICEVENTSGETTER", eventsGetter);
         
-        return classContent;
+        return classContent.Split(TemplateListenerSeparation)[0];
+    }
+
+    private string CreateEventListenerContent(string template, string n)
+    {
+        template = template.Replace("#NAME", n);
+        template = template.Replace("#ETYPE", "<int>");
+        template = template.Replace("#DICT", "INT");
+
+        return template;
     }
 
     private string GetDict(string dict, string t, string n)

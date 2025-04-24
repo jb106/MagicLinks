@@ -179,3 +179,25 @@ public static class MagicEvents
 */
 
 #endif
+
+//#SEPARATION
+/*
+using UnityEngine;
+using UnityEngine.Events;
+
+public class #NAME : MonoBehaviour
+{
+    public string reference;
+    public UnityEvent#ETYPE onEventRaised = new UnityEvent#ETYPE();
+
+    private void Start()
+    {
+        MagicEvents.#DICT[reference].OnEventRaised += OnRaised;
+    }
+
+    private void OnRaised(int i)
+    {
+        onEventRaised.Invoke(i);
+    }
+}
+*/
