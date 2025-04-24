@@ -140,12 +140,25 @@ namespace MagicLinks
 /*
 using UnityEngine;
 using UnityEngine.Events;
+using System.Collections.Generic;
+using Sirenix.OdinInspector;
+
 namespace MagicLinks
 {
     public class #NAME : MonoBehaviour
     {
+        [ValueDropdown("GetNames")]
         public string reference;
         public UnityEvent#ETYPE onEventRaised = new UnityEvent#ETYPE();
+        
+        [SerializeField, HideInInspector] private MagicLinksConfiguration _configuration;
+        
+        #if UNITY_EDITOR
+        void OnValidate()
+        {
+            _configuration = MagicLinksUtilities.GetConfiguration();
+        }
+        #endif
 
         private void OnEnable()
         {
@@ -161,19 +174,46 @@ namespace MagicLinks
         {
             onEventRaised.Invoke(i);
         }
+        
+        private IEnumerable<string> GetNames()
+        {
+            if (_configuration == null || _configuration.typesNamesPairs == null)
+                return new List<string>();
+            
+            List<string> names = new List<string>();
+
+            foreach (MagicLinkTypeNamePair pair in _configuration.typesNamesPairs)
+            {
+                if(pair.mlType == "#TYPE") names.Add(pair.mlName);
+            }
+
+            return names;
+        }
     }
 }
 
 //#SEPARATION
 using UnityEngine;
 using UnityEngine.Events;
+using System.Collections.Generic;
+using Sirenix.OdinInspector;
 
 namespace MagicLinks
 {
     public class Void_EventListener : MonoBehaviour
     {
+        [ValueDropdown("GetNames")]
         public string reference;
         public UnityEvent onEventRaised = new UnityEvent();
+        
+        [SerializeField, HideInInspector] private MagicLinksConfiguration _configuration;
+        
+        #if UNITY_EDITOR
+        void OnValidate()
+        {
+            _configuration = MagicLinksUtilities.GetConfiguration();
+        }
+        #endif
 
         private void OnEnable()
         {
@@ -188,6 +228,21 @@ namespace MagicLinks
         private void OnRaised()
         {
             onEventRaised.Invoke();
+        }
+        
+        private IEnumerable<string> GetNames()
+        {
+            if (_configuration == null || _configuration.typesNamesPairs == null)
+                return new List<string>();
+            
+            List<string> names = new List<string>();
+
+            foreach (MagicLinkTypeNamePair pair in _configuration.typesNamesPairs)
+            {
+                if(pair.mlType == string.Empty) names.Add(pair.mlName);
+            }
+
+            return names;
         }
     }
 }

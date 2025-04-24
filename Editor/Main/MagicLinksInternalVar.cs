@@ -79,14 +79,21 @@ namespace MagicLinks
 
             string currentCategorySelected = MagicLinkEditor.Instance.rootVisualElement
                 .Q<DropdownField>(MagicLinksConst.CategoriesDropdownClass).value;
-
+            
+            MagicLinksConfiguration config = MagicLinksUtilities.GetConfiguration();
+            config.typesNamesPairs.Clear();
+            
             foreach (DynamicVariable v in existingVariables)
             {
+                config.typesNamesPairs.Add(new MagicLinkTypeNamePair(v.IsVoid() ? string.Empty : v.vLabelType, v.vName));
+                
                 //Filter
                 if (currentCategorySelected != MagicLinksConst.CategoryNone)
                 {
                     if (v.category != currentCategorySelected) continue;
                 }
+                
+                EditorUtility.SetDirty(config);
 
                 VisualElement newUIVariable = variableUXML.Instantiate();
 
@@ -136,8 +143,6 @@ namespace MagicLinks
 
                 category.choices.Clear();
                 category.choices.Add(MagicLinksConst.CategoryNone);
-
-                MagicLinksConfiguration config = MagicLinksUtilities.GetConfiguration();
 
                 foreach (string categoryName in config.categories)
                 {
