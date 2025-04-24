@@ -39,9 +39,15 @@ public class MagicLinkEditor : EditorWindow
     const string VariableNameTextFieldClass = "VariableName";
     const string VariablesContainerVisualElementClass = "VariablesContainer";
     
+    const string CategoriesDropdownClass = "CategoriesDropdown";
+    const string CreateCategoryNameTextFieldClass = "CategoryName";
+    const string CreateCategoryButtonClass = "CreateCategoryButton";
+    const string CreateCategoryFoldoutClass = "CategoriesFoldout";
+    
     const string SingleVariableIcon = "Icon";
     const string SingleVariableName = "Name";
     const string SingleVariableMagicType = "MagicType";
+    const string SingleVariableCategory = "Category";
     const string SingleVariableType = "Type";
     const string SingleVariableDeleteButton = "DeleteButton";
     
@@ -58,7 +64,7 @@ public class MagicLinkEditor : EditorWindow
 
     public void CreateGUI()
     {
-        GetTypesConfiguration();
+        GetConfiguration();
         
         m_VisualTreeAsset = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(GetPackageRelativePath(UXMLPath));
         
@@ -66,6 +72,7 @@ public class MagicLinkEditor : EditorWindow
         
         HookEvents();
         UpdateTypes();
+        UpdateCategories();
         UpdateVariablesUI();
         
         GenerateMagicVariablesScript(true);
@@ -76,11 +83,14 @@ public class MagicLinkEditor : EditorWindow
         rootVisualElement.Q<Button>(CreateTypeButtonClass).clicked += CreateType;
         rootVisualElement.Q<Button>(CreateVariableButtonClass).clicked += CreateVariable;
         rootVisualElement.Q<Button>(RefreshScriptsButton).clicked += RefreshScripts;
+        rootVisualElement.Q<Button>(CreateCategoryButtonClass).clicked += CreateCategory;
+        rootVisualElement.Q<DropdownField>(CategoriesDropdownClass).RegisterValueChangedCallback((s) => {OnCategorySelected(s.newValue);});
     }
 
     private void RefreshScripts()
     {
         UpdateTypes();
+        UpdateCategories();
         UpdateVariablesUI();
         
         GenerateMagicVariablesScript(false);
@@ -99,7 +109,7 @@ public class MagicLinkEditor : EditorWindow
             return;
         }
 
-        MagicLinksTypesConfiguration config = GetTypesConfiguration();
+        MagicLinksConfiguration config = GetConfiguration();
 
         Debug.Log(type);
         if (type == string.Empty) return;
@@ -122,7 +132,7 @@ public class MagicLinkEditor : EditorWindow
         
         VisualTreeAsset customTypeUXML = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(GetPackageRelativePath(UXMLCustomTypeElement));
 
-        foreach (string customType in GetTypesConfiguration().customTypes)
+        foreach (string customType in GetConfiguration().customTypes)
         {
             VisualElement customTypeElement = customTypeUXML.Instantiate();
             
@@ -135,9 +145,79 @@ public class MagicLinkEditor : EditorWindow
         AssetDatabase.Refresh();
     }
 
+    private void OnCategorySelected(string categoryName)
+    {
+        UpdateVariablesUI();
+    }
+
+    private void CreateCategory()
+    {
+        string newCategoryName = rootVisualElement.Q<TextField>(CreateCategoryNameTextFieldClass).value;
+        
+        MagicLinksConfiguration config = GetConfiguration();
+
+        if (config.categories.Contains(newCategoryName)) return;
+        
+        config.categories.Add(newCategoryName);
+        EditorUtility.SetDirty(config);
+        
+        UpdateCategories();
+    }
+
+    private void DeleteCategory(string categoryName)
+    {
+        MagicLinksConfiguration config = GetConfiguration();
+
+        if (config.categories.Contains(categoryName) == false) return;
+        
+        config.categories.Remove(categoryName);
+        EditorUtility.SetDirty(config);
+        
+        UpdateCategories();
+    }
+
+    private void UpdateCategories()
+    {
+        MagicLinksConfiguration config = GetConfiguration();
+        
+        //Dropdown general
+        DropdownField categories = rootVisualElement.Q<DropdownField>(CategoriesDropdownClass);
+        
+        categories.choices.Clear();
+        
+        categories.choices.Add(MagicLinksUtilities.CategoryNone);
+
+        foreach (string category in config.categories)
+        {
+            categories.choices.Add(category);
+        }
+
+        if (categories.choices.Count == 1 || categories.choices.IndexOf(categories.value) == -1) categories.index = 0;
+        
+        //Foldout
+        Foldout foldout = rootVisualElement.Q<Foldout>(CreateCategoryFoldoutClass);
+        
+        foldout.Clear();
+        
+        VisualTreeAsset customTypeUXML = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(GetPackageRelativePath(UXMLCustomTypeElement));
+
+        foreach (string category in config.categories)
+        {
+            VisualElement customTypeElement = customTypeUXML.Instantiate();
+            
+            customTypeElement.Q<Label>(CustomTypeElementName).text = category;
+            customTypeElement.Q<Button>(CustomTypeElementDeleteButton).clicked += () => { DeleteCategory(category); };
+            
+            foldout.Add(customTypeElement);
+        }
+        
+        UpdateVariablesUI();
+        AssetDatabase.Refresh();
+    }
+
     private void OnCustomTypeElementDeleteButton(string customType)
     {
-        MagicLinksTypesConfiguration config = GetTypesConfiguration();
+        MagicLinksConfiguration config = GetConfiguration();
 
         config.customTypes.Remove(customType);
         EditorUtility.SetDirty(config);
@@ -187,6 +267,7 @@ public class MagicLinkEditor : EditorWindow
         newVariable.vLabelType = baseTypes.FirstOrDefault().Key;
         
         newVariable.vPath = newVariablePath;
+        newVariable.category = MagicLinksUtilities.CategoryNone;
         
         File.WriteAllText(newVariablePath, JsonUtility.ToJson(newVariable, true));
         AssetDatabase.Refresh();
@@ -228,8 +309,16 @@ public class MagicLinkEditor : EditorWindow
         VisualElement variablesContainer = rootVisualElement.Q<VisualElement>(VariablesContainerVisualElementClass);
         variablesContainer.Clear();
 
+        string currentCategorySelected = rootVisualElement.Q<DropdownField>(CategoriesDropdownClass).value;
+
         foreach (DynamicVariable v in existingVariables)
         {
+            //Filter
+            if (currentCategorySelected != MagicLinksUtilities.CategoryNone)
+            {
+                if(v.category != currentCategorySelected) continue;
+            }
+            
             VisualElement newUIVariable = variableUXML.Instantiate();
             
             //AddInitialSelectorToVariableUI(v, newUIVariable);
@@ -261,12 +350,45 @@ public class MagicLinkEditor : EditorWindow
             magicType.index = v.magicType;
             magicType.RegisterValueChangedCallback((newMagicType) => { OnMagicTypeChanged(v, magicType.choices.IndexOf(newMagicType.newValue)); });
             
-            newUIVariable.Q<VisualElement>(SingleVariableIcon).style.backgroundImage = GetVariableIcon(v.vLabelType);
+            newUIVariable.Q<VisualElement>(SingleVariableIcon).style.backgroundImage = GetVariableIcon(v);
             newUIVariable.Q<Label>(SingleVariableName).text = v.vName;
             newUIVariable.Q<Button>(SingleVariableDeleteButton).clicked += () => OnDeleteSingleVariable(v.vPath);
             
+            //Category
+            DropdownField category = newUIVariable.Q<DropdownField>(SingleVariableCategory);
+            
+            category.choices.Clear();
+            category.choices.Add(MagicLinksUtilities.CategoryNone);
+
+            MagicLinksConfiguration config = GetConfiguration();
+
+            foreach (string categoryName in config.categories)
+            {
+                category.choices.Add(categoryName);
+            }
+
+            bool goBackToNone = false;
+            if (category.choices.IndexOf(v.category) == -1)
+            {
+                OnSingleVariableCategoryChanged(v, MagicLinksUtilities.CategoryNone);
+                goBackToNone = true;
+            }
+            
+            category.SetValueWithoutNotify(goBackToNone ? MagicLinksUtilities.CategoryNone : v.category);
+            category.RegisterValueChangedCallback((c) => { OnSingleVariableCategoryChanged(v, c.newValue); });
+            
             variablesContainer.Add(newUIVariable);
         }
+    }
+
+    private void OnSingleVariableCategoryChanged(DynamicVariable variable, string newCategory)
+    {
+        DynamicVariable variableToUpdate = JsonUtility.FromJson<DynamicVariable>(File.ReadAllText(variable.vPath));
+        variableToUpdate.category = newCategory;
+        File.WriteAllText(variable.vPath, JsonUtility.ToJson(variableToUpdate, true));
+        
+        AssetDatabase.Refresh();
+        //UpdateVariablesUI();
     }
 
     private void OnMagicTypeChanged(DynamicVariable variable, int newMagicType)
@@ -331,7 +453,7 @@ public class MagicLinkEditor : EditorWindow
         UpdateVariablesUI();
     }
 
-    private Texture2D GetVariableIcon(string variableType)
+    private Texture2D GetVariableIcon(DynamicVariable variable)
     {
         string spritesPath = GetPackageRelativePath(SpritesPath);
         
@@ -340,8 +462,24 @@ public class MagicLinkEditor : EditorWindow
         foreach (string p in filesPath)
         {
             if(Path.GetExtension(p) != ".png") continue;
+
+            string baseName = string.Empty;
+
+            if (variable.magicType == 0)
+            {
+                baseName = "VariableIcon_";
+            }
+            else if (variable.magicType == 1)
+            {
+                baseName = "EventIcon_";
+            }
+            else if (variable.magicType == 2)
+            {
+                if(Path.GetFileNameWithoutExtension(p) == "EventIcon_Void")
+                    return AssetDatabase.LoadAssetAtPath(p, typeof(Texture2D)) as Texture2D;
+            }
             
-            if(Path.GetFileNameWithoutExtension(p) == "VariableIcon_" + variableType)
+            if(Path.GetFileNameWithoutExtension(p) == baseName + variable.vLabelType)
                 return AssetDatabase.LoadAssetAtPath(p, typeof(Texture2D)) as Texture2D;
         }
 
@@ -357,7 +495,7 @@ public class MagicLinkEditor : EditorWindow
         
         CreateVariablesFolder();
 
-        string newClassPath = Path.Combine(MagicLinksUtilities.TypesConfigurationPath, MagicVariableClassName + ".cs");
+        string newClassPath = Path.Combine(MagicLinksUtilities.ConfigurationPath, MagicVariableClassName + ".cs");
 
         if (ifMissing && File.Exists(newClassPath)) return;
         
@@ -443,7 +581,7 @@ public class MagicLinkEditor : EditorWindow
             types.Add(baseType.Key);
         }
 
-        foreach (string customType in GetTypesConfiguration().customTypes)
+        foreach (string customType in GetConfiguration().customTypes)
         {
             types.Add(customType);
         }
@@ -459,23 +597,23 @@ public class MagicLinkEditor : EditorWindow
         else return t;
     }
     
-    private MagicLinksTypesConfiguration GetTypesConfiguration()
+    private MagicLinksConfiguration GetConfiguration()
     {
-        if(Directory.Exists(MagicLinksUtilities.TypesConfigurationPath) == false)
-            Directory.CreateDirectory(MagicLinksUtilities.TypesConfigurationPath);
+        if(Directory.Exists(MagicLinksUtilities.ConfigurationPath) == false)
+            Directory.CreateDirectory(MagicLinksUtilities.ConfigurationPath);
         
         AssetDatabase.Refresh();
 
-        string fullPath = Path.Combine(MagicLinksUtilities.TypesConfigurationPath, MagicLinksUtilities.TypesConfigurationName);
+        string fullPath = Path.Combine(MagicLinksUtilities.ConfigurationPath, MagicLinksUtilities.ConfigurationName);
         
         if (File.Exists(fullPath))
         {
-            return AssetDatabase.LoadAssetAtPath<MagicLinksTypesConfiguration>(fullPath);
+            return AssetDatabase.LoadAssetAtPath<MagicLinksConfiguration>(fullPath);
         }
         else
         {
-            AssetDatabase.CreateAsset(new MagicLinksTypesConfiguration(), fullPath);
-            return AssetDatabase.LoadAssetAtPath<MagicLinksTypesConfiguration>(fullPath);
+            AssetDatabase.CreateAsset(new MagicLinksConfiguration(), fullPath);
+            return AssetDatabase.LoadAssetAtPath<MagicLinksConfiguration>(fullPath);
         }
     }
 
@@ -518,6 +656,7 @@ public class DynamicVariable
     public string vPath;
     public string initialValue;
     public int magicType;
+    public string category;
 
     public bool IsEvent()
     {

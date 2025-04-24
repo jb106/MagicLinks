@@ -4,8 +4,8 @@ using UnityEngine;
 
 public static class MagicLinksUtilities
 {
-    public const string TypesConfigurationPath = "Assets/Resources/MagicVariables/";
-    public const string TypesConfigurationName = "MLTypesConfiguration.asset";
+    public const string ConfigurationPath = "Assets/Resources/MagicVariables/";
+    public const string ConfigurationName = "MagicLinksConfiguration.asset";
     
     public const string VariablesPath = "Assets/Resources/MagicVariables/Variables";
     public const string ResourcesVariablesPath = "MagicVariables/Variables";
@@ -15,6 +15,8 @@ public static class MagicLinksUtilities
     public const string MagicTypeVariable = "Variable";
     public const string MagicTypeEvent = "Event";
     public const string MagicTypeEventVoid = "EventVoid";
+    
+    public const string CategoryNone = "None";
 
     public const string String = "string";
     public const string Bool = "bool";
