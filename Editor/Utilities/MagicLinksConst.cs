@@ -1,4 +1,3 @@
-#if UNITY_EDITOR
 using System;
 using System.Linq;
 using UnityEngine;
@@ -95,4 +94,3 @@ namespace MagicLinks
         }
     }
 }
-#endif
