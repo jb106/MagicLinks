@@ -1,0 +1,5 @@
+<engine:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:engine="UnityEngine.UIElements" xmlns:editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <engine:VisualElement style="flex-grow: 0; background-color: rgb(85, 85, 85); width: 100%; height: 30px; border-top-width: 0; border-right-width: 0; border-bottom-width: 0; border-left-width: 0; border-left-color: rgb(32, 32, 32); border-right-color: rgb(32, 32, 32); border-top-color: rgb(85, 85, 85); border-bottom-color: rgb(32, 32, 32); margin-top: 0; padding-top: 0;">
+        <engine:Label text="Header Name" name="HeaderText" style="color: rgb(255, 255, 255); -unity-font-style: bold; -unity-text-align: middle-center; height: 100%; font-size: 18px; -unity-font-definition: url(&quot;project://database/Assets/TextMesh%20Pro/Fonts/LiberationSans.ttf?fileID=12800000&amp;guid=e3265ab4bf004d28a9537516768c1c75&amp;type=3#LiberationSans&quot;);" />
+    </engine:VisualElement>
+</engine:UXML>

@@ -72,9 +72,15 @@ namespace MagicLinks
             VisualTreeAsset variableUXML =
                 AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(
                     MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.UXMLVariablePath));
+
+            VisualTreeAsset variableHeader =
+                AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(
+                    MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.UXMLVariableHeaderPath));
+            
             VisualElement variablesContainer =
                 MagicLinkEditor.Instance.rootVisualElement.Q<VisualElement>(MagicLinksConst
                     .VariablesContainerVisualElementClass);
+            
             variablesContainer.Clear();
 
             string currentCategorySelected = MagicLinkEditor.Instance.rootVisualElement
@@ -83,8 +89,33 @@ namespace MagicLinks
             MagicLinksConfiguration config = MagicLinksUtilities.GetConfiguration();
             config.typesNamesPairs.Clear();
             
-            foreach (DynamicVariable v in existingVariables)
+            //Sort variable by category
+            Dictionary<string, int> categoryPriority = config.categories
+                .Select((category, index) => new { category, index })
+                .ToDictionary(x => x.category, x => x.index);
+            
+            List<DynamicVariable> sortedVariables = existingVariables
+                .OrderBy(v => categoryPriority.ContainsKey(v.category) ? categoryPriority[v.category] : int.MinValue)
+                .ToList();
+
+            string lastCategory = string.Empty;
+            
+            foreach (DynamicVariable v in sortedVariables)
             {
+                if (v.category != lastCategory)
+                {
+                    if (v.category != MagicLinksConst.CategoryNone)
+                    {
+                        VisualElement newHeader = variableHeader.Instantiate();
+
+                        newHeader.Q<Label>("HeaderText").text = v.category;
+
+                        variablesContainer.Add(newHeader);
+                    }
+
+                    lastCategory = v.category;
+                }
+                
                 config.typesNamesPairs.Add(new MagicLinkTypeNamePair(v.IsVoid() ? string.Empty : v.vLabelType, v.vName));
                 
                 //Filter
@@ -170,7 +201,7 @@ namespace MagicLinks
             File.WriteAllText(variable.vPath, JsonUtility.ToJson(variableToUpdate, true));
 
             AssetDatabase.Refresh();
-            //UpdateVariablesUI();
+            UpdateVariablesUI();
         }
 
         public static void OnMagicTypeChanged(DynamicVariable variable, int newMagicType)

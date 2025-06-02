@@ -40,6 +40,7 @@ namespace MagicLinks
 
         public const string UXMLPath = "Editor/UI/MagicLinkEditor.uxml";
         public const string UXMLVariablePath = "Editor/UI/Variable.uxml";
+        public const string UXMLVariableHeaderPath = "Editor/UI/VariableHeader.uxml";
         public const string UXMLCustomTypeElement = "Editor/UI/CustomTypeElement.uxml";
 
         public const string MagicVariablesTemplate = "Editor/Various/MagicVariablesTemplate.cs";

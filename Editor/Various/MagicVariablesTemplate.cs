@@ -100,7 +100,7 @@ namespace MagicLinks
                 }
                 catch (System.Exception e)
                 {
-                    //Debug.LogError(e);
+                    Debug.LogError($"Magic Link Error : {t.name} is not a valid type - {e.Message}");
                 }
             }
             
