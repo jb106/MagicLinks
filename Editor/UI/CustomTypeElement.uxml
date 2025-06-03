@@ -1,6 +1,6 @@
 <engine:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:engine="UnityEngine.UIElements" xmlns:editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <engine:VisualElement name="CustomTypeElement" style="flex-grow: 1; flex-direction: row; background-color: rgba(22, 22, 22, 0.33); -unity-text-outline-width: 0; margin-bottom: 5px;">
-        <engine:Label text="Label" name="CustomTypeName" style="-unity-text-align: middle-left; font-size: 12px; -unity-font-style: bold; min-width: 120px; max-width: 120px; margin-right: 10px; text-overflow: ellipsis; white-space: normal;" />
+        <engine:Label text="Label" name="CustomTypeName" style="-unity-text-align: middle-left; font-size: 12px; -unity-font-style: bold; min-width: 120px; max-width: 120px; margin-right: 10px; text-overflow: ellipsis; white-space: normal; -unity-font-definition: url(&quot;project://database/Assets/MagicLinks/Editor/Fonts/Helvetica/Helvetica.ttf?fileID=12800000&amp;guid=b4e6e011032fcf94e999ee13a92ce425&amp;type=3#Helvetica&quot;);" />
         <engine:Button text="x" name="DeleteCustomType" style="background-color: rgb(188, 71, 71); -unity-text-align: middle-center; max-width: 20px; min-width: auto; min-height: auto; max-height: 20px;" />
     </engine:VisualElement>
 </engine:UXML>

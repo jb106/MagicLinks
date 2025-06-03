@@ -6,7 +6,7 @@
         <engine:VisualElement name="LeftPanel" style="flex-grow: 0; flex-direction: column; padding-right: 0; background-color: rgb(51, 51, 51); padding-top: 0; padding-bottom: 0; padding-left: 0;">
             <engine:ScrollView name="FolderList" focusable="false" style="width: auto; height: auto; flex-grow: 1; justify-content: flex-start; opacity: 1; overflow: visible; visibility: visible; display: flex; background-color: rgb(85, 85, 85); -unity-background-scale-mode: stretch-to-fill; -unity-font-style: normal;">
                 <engine:VisualElement style="flex-grow: 1; background-image: url(&quot;project://database/Assets/MagicLinks/Editor/Sprites/MagicLinks_Logo_2.png?fileID=2800000&amp;guid=65485ddb495ed75448928f74afa4504a&amp;type=3#MagicLinks_Logo_2&quot;); width: 100%; height: 50px; flex-wrap: nowrap; flex-direction: row; -unity-background-scale-mode: scale-to-fit; margin-top: 5px; margin-bottom: 5px;" />
-                <engine:Button text="Refresh Scripts" name="RefreshScripts" />
+                <engine:Button text="Refresh Scripts" name="RefreshScripts" style="-unity-font-definition: url(&quot;project://database/Assets/MagicLinks/Editor/Fonts/Helvetica/Helvetica.ttf?fileID=12800000&amp;guid=b4e6e011032fcf94e999ee13a92ce425&amp;type=3#Helvetica&quot;);" />
                 <engine:VisualElement style="flex-grow: 1; height: 3px; background-color: rgba(0, 0, 0, 0.39); margin-top: 3px; margin-right: 3px; margin-bottom: 3px; margin-left: 3px;" />
                 <engine:Label text="Custom Types Creator" style="-unity-text-align: upper-center; margin-bottom: 5px; -unity-font-style: bold;" />
                 <engine:VisualElement name="CreateType" class="LeftListElement" style="background-color: rgb(85, 85, 85);">

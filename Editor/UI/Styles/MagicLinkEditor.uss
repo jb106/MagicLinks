@@ -16,6 +16,7 @@
     flex-basis: auto;
     justify-content: flex-start;
     min-width: 100px;
+    -unity-font-definition: url("project://database/Assets/MagicLinks/Editor/Fonts/Helvetica/Helvetica.ttf?fileID=12800000&guid=b4e6e011032fcf94e999ee13a92ce425&type=3#Helvetica");
 }
 
 .ConfigurationElement {
@@ -26,6 +27,7 @@
     min-width: initial;
     flex-direction: row;
     max-width: none;
+    -unity-font-definition: url("project://database/Assets/MagicLinks/Editor/Fonts/Helvetica/Helvetica.ttf?fileID=12800000&guid=b4e6e011032fcf94e999ee13a92ce425&type=3#Helvetica");
 }
 
 .LeftListInnerElement {

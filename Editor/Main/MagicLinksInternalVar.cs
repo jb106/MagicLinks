@@ -104,7 +104,7 @@ namespace MagicLinks
             {
                 if (v.category != lastCategory)
                 {
-                    if (v.category != MagicLinksConst.CategoryNone)
+                    if (v.category != MagicLinksConst.CategoryNone && currentCategorySelected == MagicLinksConst.CategoryNone)
                     {
                         VisualElement newHeader = variableHeader.Instantiate();
 
