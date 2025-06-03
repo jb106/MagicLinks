@@ -99,6 +99,14 @@ namespace MagicLinks
                 .ToList();
 
             string lastCategory = string.Empty;
+
+            if (currentCategorySelected == MagicLinksConst.CategoryNone)
+            {
+                VisualElement newHeader = variableHeader.Instantiate();
+                newHeader.Q<Label>("HeaderText").text = MagicLinksConst.CategoryNone;
+                
+                variablesContainer.Add(newHeader);
+            }
             
             foreach (DynamicVariable v in sortedVariables)
             {
@@ -107,7 +115,6 @@ namespace MagicLinks
                     if (v.category != MagicLinksConst.CategoryNone && currentCategorySelected == MagicLinksConst.CategoryNone)
                     {
                         VisualElement newHeader = variableHeader.Instantiate();
-
                         newHeader.Q<Label>("HeaderText").text = v.category;
 
                         variablesContainer.Add(newHeader);
