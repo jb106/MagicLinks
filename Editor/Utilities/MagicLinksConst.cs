@@ -42,6 +42,11 @@ namespace MagicLinks
         public const string UXMLVariablePath = "Editor/UI/Variable.uxml";
         public const string UXMLVariableHeaderPath = "Editor/UI/VariableHeader.uxml";
         public const string UXMLCustomTypeElement = "Editor/UI/CustomTypeElement.uxml";
+        
+        public const string RuntimeLinksUIPrefab = "Runtime/RuntimeLinks.prefab";
+        
+        public const string UXMLRuntimeFieldsUIPath = "Runtime/UI/Fields/";
+        public const string UXMLRuntimeLinkItemPath = "Runtime/UI/RuntimeLinkItem.uxml";
 
         public const string MagicVariablesTemplate = "Editor/Various/MagicVariablesTemplate.cs";
         public const string MagicVariableClassName = "MagicLinksManager";
@@ -92,6 +97,11 @@ namespace MagicLinks
             return AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(a => a.GetTypes())
                 .Any(t => t.Name == typeName);
+        }
+
+        public static string GetRuntimeField(string t)
+        {
+            return UXMLRuntimeFieldsUIPath + t.ToLower() + ".uxml";
         }
     }
 }

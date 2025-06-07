@@ -4,7 +4,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using MagicLinks.Observables;
+using UnityEditor;
 using UnityEngine;
+using UnityEngine.UIElements;
 using Object = UnityEngine.Object;
 
 namespace MagicLinks
@@ -13,6 +15,8 @@ namespace MagicLinks
     public class MagicVariablesTemplate : MonoBehaviour
     {
         public static MagicVariablesTemplate Instance;
+
+        private UIDocument _runtimeUI;
         
         //VARIABLESLISTS
         
@@ -36,6 +40,10 @@ namespace MagicLinks
             if(Instance != null) Destroy(gameObject);
             
             Instance = this;
+            
+            //Create the runtime UI
+            _runtimeUI = Instantiate(AssetDatabase.LoadAssetAtPath<UIDocument>(
+                MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.RuntimeLinksUIPrefab)), transform);
 
             // Load the variables
             List<DynamicVariable> variables = new List<DynamicVariable>();
@@ -77,6 +85,111 @@ namespace MagicLinks
                     }
                 }
             }
+
+            /*
+            foreach (var pair in STRING)
+            {
+                AddLinkToRuntimeUI(pair, MagicLinksConst.String);
+            }
+            
+            foreach (var pair in BOOL)
+            {
+                AddLinkToRuntimeUI(pair, MagicLinksConst.Bool);
+            }
+            
+            foreach (var pair in INT)
+            {
+                AddLinkToRuntimeUI(pair, MagicLinksConst.Int);
+            }
+            
+            foreach (var pair in FLOAT)
+            {
+                AddLinkToRuntimeUI(pair, MagicLinksConst.Float);
+            }
+            
+            foreach (var pair in VECTOR2)
+            {
+                AddLinkToRuntimeUI(pair, MagicLinksConst.Vector2);
+            }
+            
+            foreach (var pair in VECTOR3)
+            {
+                AddLinkToRuntimeUI(pair, MagicLinksConst.Vector3);
+            }
+            */
+        }
+
+        private void AddLinkToRuntimeUI<T>(KeyValuePair<string, MagicVariableObservable<T>> pair, string t)
+        {
+            VisualTreeAsset linkElement = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(Path.Combine(MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.UXMLRuntimeLinkItemPath)));
+
+            VisualElement newElement = linkElement.Instantiate();
+
+            Label labelTitle = newElement.Q<Label>("LinkName");
+
+            labelTitle.text = pair.Key;
+
+            VisualTreeAsset field = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.GetRuntimeField(t)));
+            VisualElement newField = field.Instantiate();
+            
+            if (t == MagicLinksConst.String)
+            {
+                TextField stringField = newField.Q<TextField>("Field");
+                MagicVariableObservable<string> variable = pair.Value as MagicVariableObservable<string>;
+                
+                variable.OnValueChanged += v => { stringField.SetValueWithoutNotify(v); };
+                
+                stringField.RegisterValueChangedCallback((evt => variable.Value = evt.newValue));
+            }
+            else if (t == MagicLinksConst.Bool)
+            {
+                Toggle toggle = newField.Q<Toggle>("Field");
+                MagicVariableObservable<bool> variable = pair.Value as MagicVariableObservable<bool>;
+                
+                variable.OnValueChanged += v => { toggle.SetValueWithoutNotify(v); };
+                
+                toggle.RegisterValueChangedCallback((evt => variable.Value = evt.newValue));
+            }
+            else if (t == MagicLinksConst.Int)
+            {
+                IntegerField integer = newField.Q<IntegerField>("Field");
+                MagicVariableObservable<int> variable = pair.Value as MagicVariableObservable<int>;
+                
+                variable.OnValueChanged += v => { integer.SetValueWithoutNotify(v); };
+                
+                integer.RegisterValueChangedCallback((evt => variable.Value = evt.newValue));
+            }
+            else if (t == MagicLinksConst.Float)
+            {
+                FloatField floatField = newField.Q<FloatField>("Field");
+                MagicVariableObservable<float> variable = pair.Value as MagicVariableObservable<float>;
+                
+                variable.OnValueChanged += v => { floatField.SetValueWithoutNotify(v); };
+                
+                floatField.RegisterValueChangedCallback((evt => variable.Value = evt.newValue));
+            }
+            else if (t == MagicLinksConst.Vector2)
+            {
+                Vector2Field vector2 = newField.Q<Vector2Field>("Field");
+                MagicVariableObservable<Vector2> variable = pair.Value as MagicVariableObservable<Vector2>;
+                
+                variable.OnValueChanged += v => { vector2.SetValueWithoutNotify(v); };
+                
+                vector2.RegisterValueChangedCallback((evt => variable.Value = evt.newValue));
+            }
+            else if (t == MagicLinksConst.Vector3)
+            {
+                Vector3Field vector3 = newField.Q<Vector3Field>("Field");
+                MagicVariableObservable<Vector3> variable = pair.Value as MagicVariableObservable<Vector3>;
+                
+                variable.OnValueChanged += v => { vector3.SetValueWithoutNotify(v); };
+                
+                vector3.RegisterValueChangedCallback((evt => variable.Value = evt.newValue));
+            }
+            
+            newElement.Q<VisualElement>("RuntimeLinkItem").Add(newField);
+
+            _runtimeUI.rootVisualElement.Q<ScrollView>("Container").contentContainer.Add(newElement);
         }
 
         private Type GetMagicType(bool isEvent)
