@@ -45,6 +45,25 @@ namespace MagicLinks
             _runtimeUI = Instantiate(AssetDatabase.LoadAssetAtPath<UIDocument>(
                 MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.RuntimeLinksUIPrefab)), transform);
 
+            var root = _runtimeUI.rootVisualElement;
+            var container = root.Q<VisualElement>("Container");
+            var slider = root.Q<Slider>("WindowsSize");
+
+            container.style.transformOrigin = new TransformOrigin(0, 0);
+
+            float initialScale = slider.value;
+            container.style.scale = new Scale(new Vector2(initialScale, initialScale));
+
+            slider.RegisterValueChangedCallback(evt =>
+            {
+                float scale = evt.newValue;
+                container.style.scale = new Scale(new Vector2(scale, scale));
+            });
+            
+            //----------------------------------------------------------
+            //----------------------------------------------------------
+            //----------------------------------------------------------
+
             // Load the variables
             List<DynamicVariable> variables = new List<DynamicVariable>();
             foreach (var v in GetExistingVariables())
@@ -131,6 +150,8 @@ namespace MagicLinks
 
             VisualTreeAsset field = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.GetRuntimeField(t)));
             VisualElement newField = field.Instantiate();
+
+            newField.style.flexGrow = 1;
             
             if (t == MagicLinksConst.String)
             {
@@ -170,12 +191,12 @@ namespace MagicLinks
             }
             else if (t == MagicLinksConst.Vector2)
             {
-                Vector2Field vector2 = newField.Q<Vector2Field>("Field");
+                InlineVector2Field vector2 = newField.Q<InlineVector2Field>("Field");
                 MagicVariableObservable<Vector2> variable = pair.Value as MagicVariableObservable<Vector2>;
                 
                 variable.OnValueChanged += v => { vector2.SetValueWithoutNotify(v); };
-                
-                vector2.RegisterValueChangedCallback((evt => variable.Value = evt.newValue));
+
+                vector2.RegisterCallback<ChangeEvent<Vector2>>(evt => variable.Value = evt.newValue);
             }
             else if (t == MagicLinksConst.Vector3)
             {
