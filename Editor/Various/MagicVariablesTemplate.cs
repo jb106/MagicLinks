@@ -200,12 +200,12 @@ namespace MagicLinks
             }
             else if (t == MagicLinksConst.Vector3)
             {
-                Vector3Field vector3 = newField.Q<Vector3Field>("Field");
+                InlineVector3Field vector3 = newField.Q<InlineVector3Field>("Field");
                 MagicVariableObservable<Vector3> variable = pair.Value as MagicVariableObservable<Vector3>;
                 
                 variable.OnValueChanged += v => { vector3.SetValueWithoutNotify(v); };
                 
-                vector3.RegisterValueChangedCallback((evt => variable.Value = evt.newValue));
+                vector3.RegisterCallback<ChangeEvent<Vector3>>(evt => variable.Value = evt.newValue);
             }
             
             newElement.Q<VisualElement>("RuntimeLinkItem").Add(newField);
