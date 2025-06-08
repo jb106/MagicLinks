@@ -47,6 +47,7 @@ namespace MagicLinks
         
         public const string UXMLRuntimeFieldsUIPath = "Runtime/UI/Fields/";
         public const string UXMLRuntimeLinkItemPath = "Runtime/UI/RuntimeLinkItem.uxml";
+        public const string UXMLRuntimeLinkHeaderPath = "Runtime/UI/RuntimeLinkHeader.uxml";
 
         public const string MagicVariablesTemplate = "Editor/Various/MagicVariablesTemplate.cs";
         public const string MagicVariableClassName = "MagicLinksManager";

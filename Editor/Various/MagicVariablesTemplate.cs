@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using MagicLinks.Observables;
 using UnityEditor;
@@ -17,6 +18,7 @@ namespace MagicLinks
         public static MagicVariablesTemplate Instance;
 
         private UIDocument _runtimeUI;
+        private string _currentCategory;
         
         //VARIABLESLISTS
         
@@ -76,70 +78,120 @@ namespace MagicLinks
             {
                 if (entry.magicType == 2)
                 {
-                    /*VOID.Add(entry.key, new MagicEventVoidObservable());*/
+                    continue;
                 }
-                else
+
+                string dictName = GetDictionaryName(entry);
+                var field = GetType().GetField(dictName, BindingFlags.Public | BindingFlags.Instance);
+
+                if (field == null)
                 {
-                    string dictName = entry.type.ToUpper() + (entry.magicType == 1 ?  MagicLinksConst.EventDict : "");
-                    FieldInfo field = GetType().GetField(dictName, BindingFlags.Public | BindingFlags.Instance);
+                    Debug.LogWarning($"Dictionnaire de type {entry.type} introuvable dans MagicVariables.");
+                    continue;
+                }
 
-                    if (field != null)
-                    {
-                        var dict = field.GetValue(this);
-                        Type dictType = dict.GetType();
+                var dict = field.GetValue(this);
+                AddEntryToDictionary(entry, dict);
+            }
 
-                        Type keyType = dictType.GetGenericArguments()[0];
-                        Type expectedWrapperType = GetMagicType(entry.magicType == 1);
-                        Type valueInnerType = dictType.GetGenericArguments()[1].GetGenericArguments()[0]; // T dans MagicVariableObservable<T> ou MagicEventObservable<T>
 
-                        Type constructedType = expectedWrapperType.MakeGenericType(valueInnerType);
-                        object defaultValue = Activator.CreateInstance(constructedType);
+            InstantiateRuntimeVariables();
+        }
 
-                        MethodInfo addMethod = dictType.GetMethod("Add");
-                        addMethod.Invoke(dict, new object[] { entry.key, defaultValue });
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"Dictionnaire de type {entry.type} introuvable dans MagicVariables.");
-                    }
+        private void InstantiateRuntimeVariables()
+        {
+            List<(string key, object variable, string type)> mergedList = new();
+
+            void MergeVariables<T>(Dictionary<string, MagicVariableObservable<T>> dict, string typeName)
+            {
+                foreach (var pair in dict)
+                {
+                    mergedList.Add((pair.Key, pair.Value, typeName));
                 }
             }
 
             /*
-            foreach (var pair in STRING)
-            {
-                AddLinkToRuntimeUI(pair, MagicLinksConst.String);
-            }
-            
-            foreach (var pair in BOOL)
-            {
-                AddLinkToRuntimeUI(pair, MagicLinksConst.Bool);
-            }
-            
-            foreach (var pair in INT)
-            {
-                AddLinkToRuntimeUI(pair, MagicLinksConst.Int);
-            }
-            
-            foreach (var pair in FLOAT)
-            {
-                AddLinkToRuntimeUI(pair, MagicLinksConst.Float);
-            }
-            
-            foreach (var pair in VECTOR2)
-            {
-                AddLinkToRuntimeUI(pair, MagicLinksConst.Vector2);
-            }
-            
-            foreach (var pair in VECTOR3)
-            {
-                AddLinkToRuntimeUI(pair, MagicLinksConst.Vector3);
-            }
+            MergeVariables(STRING, MagicLinksConst.String);
+            MergeVariables(BOOL, MagicLinksConst.Bool);
+            MergeVariables(INT, MagicLinksConst.Int);
+            MergeVariables(FLOAT, MagicLinksConst.Float);
+            MergeVariables(VECTOR2, MagicLinksConst.Vector2);
+            MergeVariables(VECTOR3, MagicLinksConst.Vector3);
             */
+
+            Dictionary<string, string> nameToCategory = new();
+            foreach (var v in GetExistingVariables())
+            {
+                nameToCategory[v.vName] = v.category;
+            }
+
+            foreach (var item in mergedList.OrderBy(x => nameToCategory.TryGetValue(x.key, out var cat) ? cat : ""))
+            {
+                string category = nameToCategory.TryGetValue(item.key, out var c) ? c : "";
+                
+                switch (item.type)
+                {
+                    case MagicLinksConst.String:
+                        AddLinkToRuntimeUI(new KeyValuePair<string, MagicVariableObservable<string>>(item.key, (MagicVariableObservable<string>)item.variable), item.type, category);
+                        break;
+                    case MagicLinksConst.Bool:
+                        AddLinkToRuntimeUI(new KeyValuePair<string, MagicVariableObservable<bool>>(item.key, (MagicVariableObservable<bool>)item.variable), item.type, category);
+                        break;
+                    case MagicLinksConst.Int:
+                        AddLinkToRuntimeUI(new KeyValuePair<string, MagicVariableObservable<int>>(item.key, (MagicVariableObservable<int>)item.variable), item.type, category);
+                        break;
+                    case MagicLinksConst.Float:
+                        AddLinkToRuntimeUI(new KeyValuePair<string, MagicVariableObservable<float>>(item.key, (MagicVariableObservable<float>)item.variable), item.type, category);
+                        break;
+                    case MagicLinksConst.Vector2:
+                        AddLinkToRuntimeUI(new KeyValuePair<string, MagicVariableObservable<Vector2>>(item.key, (MagicVariableObservable<Vector2>)item.variable), item.type, category);
+                        break;
+                    case MagicLinksConst.Vector3:
+                        AddLinkToRuntimeUI(new KeyValuePair<string, MagicVariableObservable<Vector3>>(item.key, (MagicVariableObservable<Vector3>)item.variable), item.type, category);
+                        break;
+                }
+            }
+        }
+        
+        private string GetDictionaryName(VariableEntry entry)
+        {
+            return entry.type.ToUpper() + (entry.magicType == 1 ? MagicLinksConst.EventDict : "");
         }
 
-        private void AddLinkToRuntimeUI<T>(KeyValuePair<string, MagicVariableObservable<T>> pair, string t)
+        private void AddEntryToDictionary(VariableEntry entry, object dict)
         {
+            var dictType = dict.GetType();
+            var valueWrapperType = GetMagicType(entry.magicType == 1); // MagicVariableObservable<> ou MagicEventObservable<>
+            var innerValueType = dictType.GetGenericArguments()[1].GetGenericArguments()[0]; // T dans MagicXObservable<T>
+
+            var constructedType = valueWrapperType.MakeGenericType(innerValueType);
+            var valueInstance = Activator.CreateInstance(constructedType);
+
+            var addMethod = dictType.GetMethod("Add");
+            addMethod.Invoke(dict, new object[] { entry.key, valueInstance });
+        }
+
+
+        private void AddLinkToRuntimeUI<T>(KeyValuePair<string, MagicVariableObservable<T>> pair, string t, string category)
+        {
+            VisualElement contentContainer = _runtimeUI.rootVisualElement.Q<ScrollView>("Container").contentContainer;
+            
+            if (category != _currentCategory)
+            {
+                if (category != string.Empty)
+                {
+                    VisualTreeAsset headerElement = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(Path.Combine(MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.UXMLRuntimeLinkHeaderPath)));
+
+                    VisualElement newHeader = headerElement.Instantiate();
+
+                    newHeader.Q<Label>("HeaderName").text = category;
+
+                    contentContainer.Add(newHeader);
+                }
+                
+                _currentCategory = category;
+            }
+            
             VisualTreeAsset linkElement = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(Path.Combine(MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.UXMLRuntimeLinkItemPath)));
 
             VisualElement newElement = linkElement.Instantiate();
@@ -210,7 +262,7 @@ namespace MagicLinks
             
             newElement.Q<VisualElement>("RuntimeLinkItem").Add(newField);
 
-            _runtimeUI.rootVisualElement.Q<ScrollView>("Container").contentContainer.Add(newElement);
+            contentContainer.Add(newElement);
         }
 
         private Type GetMagicType(bool isEvent)

@@ -26,7 +26,7 @@ public partial class InlineVector2Field : VisualElement
         xField.label = "";
         xField.style.flexGrow = 1;
         xField.style.minWidth = 60;
-        xField.style.maxWidth = 100;
+        xField.style.maxWidth = 120;
         xField.style.flexShrink = 1;
         xField.style.overflow = Overflow.Hidden;
 
@@ -34,7 +34,7 @@ public partial class InlineVector2Field : VisualElement
         yField.label = "";
         yField.style.flexGrow = 1;
         yField.style.minWidth = 60;
-        yField.style.maxWidth = 100;
+        yField.style.maxWidth = 120;
         yField.style.flexShrink = 1;
         yField.style.overflow = Overflow.Hidden;
 
