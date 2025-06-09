@@ -1,5 +1,5 @@
 <engine:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:engine="UnityEngine.UIElements" xmlns:editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
-    <engine:Foldout text="Magic Links">
+    <engine:Foldout text="Magic Links" value="false" style="width: 150px;">
         <engine:Slider label="Windows Size" value="1" high-value="3" name="WindowsSize" low-value="0.5" style="width: 300px;" />
         <engine:ScrollView name="Container" style="width: 400px; background-color: rgba(66, 66, 66, 0);" />
     </engine:Foldout>

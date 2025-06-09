@@ -1,6 +1,6 @@
 <engine:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:engine="UnityEngine.UIElements" xmlns:editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <Style src="project://database/Assets/MagicLinks/Runtime/UI/RuntimeStyles.uss?fileID=7433441132597879392&amp;guid=55df091c6293b284d87a8e3904edd3fb&amp;type=3#RuntimeStyles" />
-    <engine:VisualElement name="RuntimeLinkItem" style="flex-direction: row; background-color: rgb(67, 67, 67); border-left-color: rgb(0, 0, 0); border-right-color: rgb(0, 0, 0); border-top-color: rgb(0, 0, 0); border-bottom-color: rgb(0, 0, 0);">
+    <engine:VisualElement name="RuntimeLinkItem" style="flex-direction: row; background-color: rgb(67, 67, 67); border-left-color: rgb(0, 0, 0); border-right-color: rgb(0, 0, 0); border-top-color: rgb(0, 0, 0); border-bottom-color: rgb(0, 0, 0); border-bottom-width: 2px; margin-top: -1px; margin-bottom: -1px;">
         <engine:Label text="Variable name" name="LinkName" class="texts" style="width: 150px; -unity-text-align: middle-left; font-size: 12px;" />
     </engine:VisualElement>
 </engine:UXML>

@@ -60,8 +60,8 @@ public partial class InlineVector3Field : VisualElement
     {
         var field = new FloatField { label = "" };
         field.style.flexGrow = 1;
-        field.style.minWidth = 73;
-        field.style.maxWidth = 73;
+        field.style.minWidth = 64;
+        field.style.maxWidth = 64;
         field.style.flexShrink = 1;
         field.style.overflow = Overflow.Hidden;
 
