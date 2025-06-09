@@ -78,6 +78,7 @@ namespace MagicLinks
             {
                 if (entry.magicType == 2)
                 {
+                    /*VOID.Add(entry.key, new MagicEventVoidObservable());*/
                     continue;
                 }
 
