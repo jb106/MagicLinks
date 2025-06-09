@@ -18,7 +18,11 @@ namespace MagicLinks
         public static MagicVariablesTemplate Instance;
 
         private UIDocument _runtimeUI;
+        private VisualElement _runtimeContainer;
+        private DropdownField _categoryDropdown;
+        
         private string _currentCategory;
+        private Dictionary<string, List<VisualElement>> _instantiatedLinks = new Dictionary<string, List<VisualElement>>();
         
         //VARIABLESLISTS
         
@@ -46,6 +50,8 @@ namespace MagicLinks
             //Create the runtime UI
             _runtimeUI = Instantiate(AssetDatabase.LoadAssetAtPath<UIDocument>(
                 MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.RuntimeLinksUIPrefab)), transform);
+            
+            _runtimeContainer = _runtimeUI.rootVisualElement.Q<ScrollView>("Container").contentContainer;
 
             var root = _runtimeUI.rootVisualElement;
             var container = root.Q<VisualElement>("Container");
@@ -60,6 +66,33 @@ namespace MagicLinks
             {
                 float scale = evt.newValue;
                 container.style.scale = new Scale(new Vector2(scale, scale));
+            });
+            
+            // ------- CATEGORIES
+            
+            _categoryDropdown = root.Q<DropdownField>("Category");
+            _categoryDropdown.choices.Clear();
+            
+            _categoryDropdown.choices.Add(MagicLinksConst.CategoryNone);
+            
+            MagicLinksConfiguration config = MagicLinksUtilities.GetConfiguration();
+
+            foreach (var cName in config.categories)
+            {
+                _categoryDropdown.choices.Add(cName);
+            }
+
+            _categoryDropdown.value = _categoryDropdown.choices[0];
+            _categoryDropdown.RegisterValueChangedCallback(evt =>
+            {
+                foreach (var pair in _instantiatedLinks)
+                {
+                    foreach (var vElement in pair.Value)
+                    {
+                        bool isVisible = evt.newValue == MagicLinksConst.CategoryNone || evt.newValue == pair.Key;
+                        vElement.style.display = isVisible ? DisplayStyle.Flex : DisplayStyle.None;
+                    }
+                }
             });
             
             //----------------------------------------------------------
@@ -119,7 +152,7 @@ namespace MagicLinks
             MergeVariables(VECTOR2, MagicLinksConst.Vector2);
             MergeVariables(VECTOR3, MagicLinksConst.Vector3);
             */
-
+            
             Dictionary<string, string> nameToCategory = new();
             foreach (var v in GetExistingVariables())
             {
@@ -174,7 +207,6 @@ namespace MagicLinks
 
         private void AddLinkToRuntimeUI<T>(KeyValuePair<string, MagicVariableObservable<T>> pair, string t, string category)
         {
-            VisualElement contentContainer = _runtimeUI.rootVisualElement.Q<ScrollView>("Container").contentContainer;
 
             if (category != _currentCategory)
             {
@@ -185,7 +217,9 @@ namespace MagicLinks
 
                     VisualElement newHeader = headerElement.Instantiate();
                     newHeader.Q<Label>("HeaderName").text = category;
-                    contentContainer.Add(newHeader);
+                    _runtimeContainer.Add(newHeader);
+                    
+                    AddInstantiatedToList(category, newHeader);
                 }
 
                 _currentCategory = category;
@@ -236,7 +270,17 @@ namespace MagicLinks
             }
 
             newElement.Q<VisualElement>("RuntimeLinkItem").Add(newField);
-            contentContainer.Add(newElement);
+            _runtimeContainer.Add(newElement);
+            
+            AddInstantiatedToList(category, newElement);
+        }
+
+        private void AddInstantiatedToList(string category, VisualElement element)
+        {
+            if (_instantiatedLinks.ContainsKey(category) ==false)
+                _instantiatedLinks.Add(category, new List<VisualElement>());
+            
+            _instantiatedLinks[category].Add(element);
         }
         
         private Type GetMagicType(bool isEvent)
