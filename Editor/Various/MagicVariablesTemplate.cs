@@ -172,100 +172,73 @@ namespace MagicLinks
             addMethod.Invoke(dict, new object[] { entry.key, valueInstance });
         }
 
-
         private void AddLinkToRuntimeUI<T>(KeyValuePair<string, MagicVariableObservable<T>> pair, string t, string category)
         {
             VisualElement contentContainer = _runtimeUI.rootVisualElement.Q<ScrollView>("Container").contentContainer;
-            
+
             if (category != _currentCategory)
             {
                 if (category != string.Empty)
                 {
-                    VisualTreeAsset headerElement = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(Path.Combine(MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.UXMLRuntimeLinkHeaderPath)));
+                    VisualTreeAsset headerElement = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(
+                        Path.Combine(MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.UXMLRuntimeLinkHeaderPath)));
 
                     VisualElement newHeader = headerElement.Instantiate();
-
                     newHeader.Q<Label>("HeaderName").text = category;
-
                     contentContainer.Add(newHeader);
                 }
-                
+
                 _currentCategory = category;
             }
-            
-            VisualTreeAsset linkElement = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(Path.Combine(MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.UXMLRuntimeLinkItemPath)));
+
+            VisualTreeAsset linkElement = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(
+                Path.Combine(MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.UXMLRuntimeLinkItemPath)));
 
             VisualElement newElement = linkElement.Instantiate();
-
             Label labelTitle = newElement.Q<Label>("LinkName");
-
             labelTitle.text = pair.Key;
 
-            VisualTreeAsset field = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.GetRuntimeField(t)));
+            VisualTreeAsset field = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(
+                MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.GetRuntimeField(t)));
             VisualElement newField = field.Instantiate();
-
             newField.style.flexGrow = 1;
-            
-            if (t == MagicLinksConst.String)
-            {
-                TextField stringField = newField.Q<TextField>("Field");
-                MagicVariableObservable<string> variable = pair.Value as MagicVariableObservable<string>;
-                
-                variable.OnValueChanged += v => { stringField.SetValueWithoutNotify(v); };
-                
-                stringField.RegisterValueChangedCallback((evt => variable.Value = evt.newValue));
-            }
-            else if (t == MagicLinksConst.Bool)
-            {
-                Toggle toggle = newField.Q<Toggle>("Field");
-                MagicVariableObservable<bool> variable = pair.Value as MagicVariableObservable<bool>;
-                
-                variable.OnValueChanged += v => { toggle.SetValueWithoutNotify(v); };
-                
-                toggle.RegisterValueChangedCallback((evt => variable.Value = evt.newValue));
-            }
-            else if (t == MagicLinksConst.Int)
-            {
-                IntegerField integer = newField.Q<IntegerField>("Field");
-                MagicVariableObservable<int> variable = pair.Value as MagicVariableObservable<int>;
-                
-                variable.OnValueChanged += v => { integer.SetValueWithoutNotify(v); };
-                
-                integer.RegisterValueChangedCallback((evt => variable.Value = evt.newValue));
-            }
-            else if (t == MagicLinksConst.Float)
-            {
-                FloatField floatField = newField.Q<FloatField>("Field");
-                MagicVariableObservable<float> variable = pair.Value as MagicVariableObservable<float>;
-                
-                variable.OnValueChanged += v => { floatField.SetValueWithoutNotify(v); };
-                
-                floatField.RegisterValueChangedCallback((evt => variable.Value = evt.newValue));
-            }
-            else if (t == MagicLinksConst.Vector2)
-            {
-                InlineVector2Field vector2 = newField.Q<InlineVector2Field>("Field");
-                MagicVariableObservable<Vector2> variable = pair.Value as MagicVariableObservable<Vector2>;
-                
-                variable.OnValueChanged += v => { vector2.SetValueWithoutNotify(v); };
 
-                vector2.RegisterCallback<ChangeEvent<Vector2>>(evt => variable.Value = evt.newValue);
-            }
-            else if (t == MagicLinksConst.Vector3)
+            void BindField<TField, TValue>(string query, Action<TField, TValue> setValue, Action<TField, EventCallback<ChangeEvent<TValue>>> bindCallback)
+                where TField : VisualElement
             {
-                InlineVector3Field vector3 = newField.Q<InlineVector3Field>("Field");
-                MagicVariableObservable<Vector3> variable = pair.Value as MagicVariableObservable<Vector3>;
-                
-                variable.OnValueChanged += v => { vector3.SetValueWithoutNotify(v); };
-                
-                vector3.RegisterCallback<ChangeEvent<Vector3>>(evt => variable.Value = evt.newValue);
+                var fieldElement = newField.Q<TField>(query);
+                MagicVariableObservable<TValue> variable = pair.Value as MagicVariableObservable<TValue>;
+                variable.OnValueChanged += v => setValue(fieldElement, v);
+                setValue(fieldElement, variable.Value);
+                bindCallback(fieldElement, evt => variable.Value = evt.newValue);
             }
-            
+
+            switch (t)
+            {
+                case MagicLinksConst.String:
+                    BindField<TextField, string>("Field", (f, v) => f.SetValueWithoutNotify(v), (f, cb) => f.RegisterValueChangedCallback(cb));
+                    break;
+                case MagicLinksConst.Bool:
+                    BindField<Toggle, bool>("Field", (f, v) => f.SetValueWithoutNotify(v), (f, cb) => f.RegisterValueChangedCallback(cb));
+                    break;
+                case MagicLinksConst.Int:
+                    BindField<IntegerField, int>("Field", (f, v) => f.SetValueWithoutNotify(v), (f, cb) => f.RegisterValueChangedCallback(cb));
+                    break;
+                case MagicLinksConst.Float:
+                    BindField<FloatField, float>("Field", (f, v) => f.SetValueWithoutNotify(v), (f, cb) => f.RegisterValueChangedCallback(cb));
+                    break;
+                case MagicLinksConst.Vector2:
+                    BindField<InlineVector2Field, Vector2>("Field", (f, v) => f.SetValueWithoutNotify(v), (f, cb) => f.RegisterCallback(cb));
+                    break;
+                case MagicLinksConst.Vector3:
+                    BindField<InlineVector3Field, Vector3>("Field", (f, v) => f.SetValueWithoutNotify(v), (f, cb) => f.RegisterCallback(cb));
+                    break;
+            }
+
             newElement.Q<VisualElement>("RuntimeLinkItem").Add(newField);
-
             contentContainer.Add(newElement);
         }
-
+        
         private Type GetMagicType(bool isEvent)
         {
             if (isEvent) return typeof(MagicEventObservable<>);
