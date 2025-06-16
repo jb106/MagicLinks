@@ -5,10 +5,13 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using MagicLinks.Observables;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Object = UnityEngine.Object;
+
+//STARTUSINGEDITOR
+using UnityEditor;
+//ENDUSINGEDITOR
 
 namespace MagicLinks
 {
@@ -47,11 +50,14 @@ namespace MagicLinks
             
             Instance = this;
             
+            
+            //STARTUSINGEDITOR
             //Create the runtime UI
             _runtimeUI = Instantiate(AssetDatabase.LoadAssetAtPath<UIDocument>(
                 MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.RuntimeLinksUIPrefab)), transform);
             
             _runtimeContainer = _runtimeUI.rootVisualElement.Q<ScrollView>("Container").contentContainer;
+            //ENDUSINGEDITOR
 
             var root = _runtimeUI.rootVisualElement;
             var container = root.Q<VisualElement>("Container");
@@ -129,9 +135,17 @@ namespace MagicLinks
             }
 
 
+            //STARTUSINGEDITOR
             InstantiateRuntimeVariables();
+            //ENDUSINGEDITOR
         }
-
+        
+        private string GetDictionaryName(VariableEntry entry)
+        {
+            return entry.type.ToUpper() + (entry.magicType == 1 ? MagicLinksConst.EventDict : "");
+        }
+        
+        //STARTUSINGEDITOR
         private void InstantiateRuntimeVariables()
         {
             List<(string key, object variable, string type)> mergedList = new();
@@ -187,24 +201,6 @@ namespace MagicLinks
             }
         }
         
-        private string GetDictionaryName(VariableEntry entry)
-        {
-            return entry.type.ToUpper() + (entry.magicType == 1 ? MagicLinksConst.EventDict : "");
-        }
-
-        private void AddEntryToDictionary(VariableEntry entry, object dict)
-        {
-            var dictType = dict.GetType();
-            var valueWrapperType = GetMagicType(entry.magicType == 1); // MagicVariableObservable<> ou MagicEventObservable<>
-            var innerValueType = dictType.GetGenericArguments()[1].GetGenericArguments()[0]; // T dans MagicXObservable<T>
-
-            var constructedType = valueWrapperType.MakeGenericType(innerValueType);
-            var valueInstance = Activator.CreateInstance(constructedType);
-
-            var addMethod = dictType.GetMethod("Add");
-            addMethod.Invoke(dict, new object[] { entry.key, valueInstance });
-        }
-
         private void AddLinkToRuntimeUI<T>(KeyValuePair<string, MagicVariableObservable<T>> pair, string t, string category)
         {
 
@@ -281,6 +277,20 @@ namespace MagicLinks
                 _instantiatedLinks.Add(category, new List<VisualElement>());
             
             _instantiatedLinks[category].Add(element);
+        }
+        //ENDUSINGEDITOR
+
+        private void AddEntryToDictionary(VariableEntry entry, object dict)
+        {
+            var dictType = dict.GetType();
+            var valueWrapperType = GetMagicType(entry.magicType == 1); // MagicVariableObservable<> ou MagicEventObservable<>
+            var innerValueType = dictType.GetGenericArguments()[1].GetGenericArguments()[0]; // T dans MagicXObservable<T>
+
+            var constructedType = valueWrapperType.MakeGenericType(innerValueType);
+            var valueInstance = Activator.CreateInstance(constructedType);
+
+            var addMethod = dictType.GetMethod("Add");
+            addMethod.Invoke(dict, new object[] { entry.key, valueInstance });
         }
         
         private Type GetMagicType(bool isEvent)

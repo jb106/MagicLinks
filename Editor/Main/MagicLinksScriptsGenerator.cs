@@ -55,6 +55,9 @@ namespace MagicLinks
             classContent = classContent.Replace("#if UNITY_EDITOR", string.Empty);
             classContent = classContent.Replace("#endif", string.Empty);
 
+            classContent = classContent.Replace("//STARTUSINGEDITOR", "#if UNITY_EDITOR");
+            classContent = classContent.Replace("//ENDUSINGEDITOR", "#endif");
+
             //Generate Getters
             string variablesGetter = string.Empty;
             foreach (string customType in MagicLinksUtilities.GetAllTypes())
