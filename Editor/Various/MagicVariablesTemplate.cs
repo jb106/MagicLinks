@@ -57,7 +57,6 @@ namespace MagicLinks
                 MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.RuntimeLinksUIPrefab)), transform);
             
             _runtimeContainer = _runtimeUI.rootVisualElement.Q<ScrollView>("Container").contentContainer;
-            //ENDUSINGEDITOR
 
             var root = _runtimeUI.rootVisualElement;
             var container = root.Q<VisualElement>("Container");
@@ -100,6 +99,7 @@ namespace MagicLinks
                     }
                 }
             });
+            //ENDUSINGEDITOR
             
             //----------------------------------------------------------
             //----------------------------------------------------------
