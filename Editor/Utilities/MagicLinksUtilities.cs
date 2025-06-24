@@ -162,6 +162,19 @@ namespace MagicLinks
         {
             return char.ToUpper(s[0]) + s.Substring(1);
         }
+        
+        public static void DisableFocusRecursive(VisualElement root)
+        {
+            if (root == null)
+                return;
+
+            root.focusable = false;
+
+            foreach (var child in root.Children())
+            {
+                DisableFocusRecursive(child);
+            }
+        }
     }
 }
 #endif

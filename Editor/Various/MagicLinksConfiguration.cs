@@ -10,6 +10,8 @@ namespace MagicLinks
         public List<string> categories = new List<string>();
 
         public List<MagicLinkTypeNamePair> typesNamesPairs = new List<MagicLinkTypeNamePair>();
+
+        public bool enableRuntimeUI;
     }
 
     [System.Serializable]

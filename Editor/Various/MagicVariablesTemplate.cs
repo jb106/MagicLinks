@@ -51,54 +51,57 @@ namespace MagicLinks
             Instance = this;
             
             
+            MagicLinksConfiguration config = MagicLinksUtilities.GetConfiguration();
+            
             //STARTUSINGEDITOR
             //Create the runtime UI
-            _runtimeUI = Instantiate(AssetDatabase.LoadAssetAtPath<UIDocument>(
-                MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.RuntimeLinksUIPrefab)), transform);
-            
-            _runtimeContainer = _runtimeUI.rootVisualElement.Q<ScrollView>("Container").contentContainer;
-
-            var root = _runtimeUI.rootVisualElement;
-            var container = root.Q<VisualElement>("Container");
-            var slider = root.Q<Slider>("WindowsSize");
-
-            container.style.transformOrigin = new TransformOrigin(0, 0);
-
-            float initialScale = slider.value;
-            container.style.scale = new Scale(new Vector2(initialScale, initialScale));
-
-            slider.RegisterValueChangedCallback(evt =>
+            if (config.enableRuntimeUI)
             {
-                float scale = evt.newValue;
-                container.style.scale = new Scale(new Vector2(scale, scale));
-            });
-            
-            // ------- CATEGORIES
-            
-            _categoryDropdown = root.Q<DropdownField>("Category");
-            _categoryDropdown.choices.Clear();
-            
-            _categoryDropdown.choices.Add(MagicLinksConst.CategoryNone);
-            
-            MagicLinksConfiguration config = MagicLinksUtilities.GetConfiguration();
+                _runtimeUI = Instantiate(AssetDatabase.LoadAssetAtPath<UIDocument>(
+                    MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.RuntimeLinksUIPrefab)), transform);
 
-            foreach (var cName in config.categories)
-            {
-                _categoryDropdown.choices.Add(cName);
-            }
+                _runtimeContainer = _runtimeUI.rootVisualElement.Q<ScrollView>("Container").contentContainer;
 
-            _categoryDropdown.value = _categoryDropdown.choices[0];
-            _categoryDropdown.RegisterValueChangedCallback(evt =>
-            {
-                foreach (var pair in _instantiatedLinks)
+                var root = _runtimeUI.rootVisualElement;
+                var container = root.Q<VisualElement>("Container");
+                var slider = root.Q<Slider>("WindowsSize");
+
+                container.style.transformOrigin = new TransformOrigin(0, 0);
+
+                float initialScale = slider.value;
+                container.style.scale = new Scale(new Vector2(initialScale, initialScale));
+
+                slider.RegisterValueChangedCallback(evt =>
                 {
-                    foreach (var vElement in pair.Value)
-                    {
-                        bool isVisible = evt.newValue == MagicLinksConst.CategoryNone || evt.newValue == pair.Key;
-                        vElement.style.display = isVisible ? DisplayStyle.Flex : DisplayStyle.None;
-                    }
+                    float scale = evt.newValue;
+                    container.style.scale = new Scale(new Vector2(scale, scale));
+                });
+
+                // ------- CATEGORIES
+
+                _categoryDropdown = root.Q<DropdownField>("Category");
+                _categoryDropdown.choices.Clear();
+
+                _categoryDropdown.choices.Add(MagicLinksConst.CategoryNone);
+
+                foreach (var cName in config.categories)
+                {
+                    _categoryDropdown.choices.Add(cName);
                 }
-            });
+
+                _categoryDropdown.value = _categoryDropdown.choices[0];
+                _categoryDropdown.RegisterValueChangedCallback(evt =>
+                {
+                    foreach (var pair in _instantiatedLinks)
+                    {
+                        foreach (var vElement in pair.Value)
+                        {
+                            bool isVisible = evt.newValue == MagicLinksConst.CategoryNone || evt.newValue == pair.Key;
+                            vElement.style.display = isVisible ? DisplayStyle.Flex : DisplayStyle.None;
+                        }
+                    }
+                });
+            }
             //ENDUSINGEDITOR
             
             //----------------------------------------------------------
@@ -136,7 +139,12 @@ namespace MagicLinks
 
 
             //STARTUSINGEDITOR
-            InstantiateRuntimeVariables();
+            if (config.enableRuntimeUI)
+            {
+                InstantiateRuntimeVariables();
+            }
+            
+            MagicLinksUtilities.DisableFocusRecursive(_runtimeContainer);
             //ENDUSINGEDITOR
         }
         

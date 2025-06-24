@@ -70,6 +70,8 @@ namespace MagicLinks
             "public static Dictionary<string, MagicEventVoidObservable> VOID = MagicLinksManager.Instance.VOID;";
 
         public const string RefreshScriptsButton = "RefreshScripts";
+        
+        public const string EnableRuntimeUIToggle = "EnableRuntimeUI";
 
         public const string CreateTypeButtonClass = "CreateTypeButton";
         public const string CreateVariableButtonClass = "CreateVariableButton";

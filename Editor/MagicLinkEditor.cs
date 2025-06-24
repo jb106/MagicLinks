@@ -28,13 +28,15 @@ namespace MagicLinks
         {
             Instance = this;
 
-            MagicLinksUtilities.GetConfiguration();
+            MagicLinksConfiguration config = MagicLinksUtilities.GetConfiguration();
 
             m_VisualTreeAsset =
                 AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(
                     MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.UXMLPath));
 
             rootVisualElement.Add(m_VisualTreeAsset.Instantiate());
+            
+            rootVisualElement.Q<Toggle>().SetValueWithoutNotify(config.enableRuntimeUI);
 
             HookEvents();
             MagicLinksCustomTypes.UpdateTypes();
@@ -48,15 +50,22 @@ namespace MagicLinks
 
         private void HookEvents()
         {
-            rootVisualElement.Q<Button>(MagicLinksConst.CreateTypeButtonClass).clicked +=
-                MagicLinksCustomTypes.CreateType;
-            rootVisualElement.Q<Button>(MagicLinksConst.CreateVariableButtonClass).clicked +=
-                MagicLinksInternalVar.CreateVariable;
+            rootVisualElement.Q<Toggle>(MagicLinksConst.EnableRuntimeUIToggle).RegisterValueChangedCallback(evt => ChangeEnableRuntimeUI(evt.newValue));
+            
+            rootVisualElement.Q<Button>(MagicLinksConst.CreateTypeButtonClass).clicked += MagicLinksCustomTypes.CreateType;
+            rootVisualElement.Q<Button>(MagicLinksConst.CreateVariableButtonClass).clicked += MagicLinksInternalVar.CreateVariable;
             rootVisualElement.Q<Button>(MagicLinksConst.RefreshScriptsButton).clicked += RefreshScripts;
-            rootVisualElement.Q<Button>(MagicLinksConst.CreateCategoryButtonClass).clicked +=
-                MagicLinksCategories.CreateCategory;
-            rootVisualElement.Q<DropdownField>(MagicLinksConst.CategoriesDropdownClass)
-                .RegisterValueChangedCallback((s) => { MagicLinksCategories.OnCategorySelected(s.newValue); });
+            rootVisualElement.Q<Button>(MagicLinksConst.CreateCategoryButtonClass).clicked += MagicLinksCategories.CreateCategory;
+            rootVisualElement.Q<DropdownField>(MagicLinksConst.CategoriesDropdownClass).RegisterValueChangedCallback((s) => { MagicLinksCategories.OnCategorySelected(s.newValue); });
+        }
+
+        private void ChangeEnableRuntimeUI(bool enabled)
+        {
+            MagicLinksConfiguration configuration = MagicLinksUtilities.GetConfiguration();
+
+            configuration.enableRuntimeUI = enabled;
+            
+            EditorUtility.SetDirty(configuration);
         }
 
         private void RefreshScripts()
