@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEditor;
@@ -34,15 +35,33 @@ namespace MagicLinks
 
             string variables = string.Empty;
 
+            var listTypes = new HashSet<string>();
+            foreach (var v in MagicLinksInternalVar.GetExistingVariables())
+            {
+                if (!v.IsEvent() && v.isList)
+                    listTypes.Add(v.vLabelType);
+            }
+
             foreach (string customType in MagicLinksUtilities.GetAllTypes())
             {
+                if (customType.StartsWith("List", StringComparison.Ordinal))
+                    continue;
+
                 variables += GetDict(MagicLinksConst.VariableDictTemplate, customType, customType.ToUpper());
+            }
+
+            foreach (string listType in listTypes)
+            {
+                variables += GetDict(MagicLinksConst.ListDictTemplate, listType, listType.ToUpper() + MagicLinksConst.ListSuffix);
             }
 
             variables += "\n \n";
 
             foreach (string customType in MagicLinksUtilities.GetAllTypes())
             {
+                if (customType.StartsWith("List", StringComparison.Ordinal))
+                    continue;
+
                 variables += GetDict(MagicLinksConst.EventDictTemplate, customType,
                     customType.ToUpper() + MagicLinksConst.EventDict);
             }
@@ -62,7 +81,15 @@ namespace MagicLinks
             string variablesGetter = string.Empty;
             foreach (string customType in MagicLinksUtilities.GetAllTypes())
             {
+                if (customType.StartsWith("List", StringComparison.Ordinal))
+                    continue;
+
                 variablesGetter += GetDict(MagicLinksConst.VariableGetterTemplate, customType, customType.ToUpper());
+            }
+
+            foreach (string listType in listTypes)
+            {
+                variablesGetter += GetDict(MagicLinksConst.VariableGetterTemplate, $"List<{listType}>", listType.ToUpper() + MagicLinksConst.ListSuffix);
             }
 
             classContent = classContent.Replace("//MAGICVARIABLESGETTER", variablesGetter);
@@ -70,6 +97,9 @@ namespace MagicLinks
             string eventsGetter = string.Empty;
             foreach (string customType in MagicLinksUtilities.GetAllTypes())
             {
+                if (customType.StartsWith("List", StringComparison.Ordinal))
+                    continue;
+
                 string eventGetter = GetDict(MagicLinksConst.EventGetterTemplate, customType,
                     customType.ToUpper() + MagicLinksConst.EventDict);
 
@@ -108,6 +138,9 @@ namespace MagicLinks
 
             foreach (string t in MagicLinksUtilities.GetAllTypes())
             {
+                if (t.StartsWith("List", StringComparison.Ordinal))
+                    continue;
+
                 eventsListenersScriptsName.Add(MagicLinksUtilities.GetEventListenerName(t) + ".cs");
             }
 
@@ -160,13 +193,16 @@ namespace MagicLinks
             
             foreach (string t in MagicLinksUtilities.GetAllTypes())
             {
-                //Event Listeners
-                string eventClassName = MagicLinksUtilities.GetEventListenerName(t);
+                if (!t.StartsWith("List", StringComparison.Ordinal))
+                {
+                    //Event Listeners
+                    string eventClassName = MagicLinksUtilities.GetEventListenerName(t);
 
-                string eventListenerPath = Path.Combine(MagicLinksConst.EventsListenersPath, eventClassName + ".cs");
-                string eventListenerContent = CreateListenerContent(separated[1], eventClassName, t, "MagicEvents", "OnEventRaised");
-                File.WriteAllText(eventListenerPath, eventListenerContent);
-                
+                    string eventListenerPath = Path.Combine(MagicLinksConst.EventsListenersPath, eventClassName + ".cs");
+                    string eventListenerContent = CreateListenerContent(separated[1], eventClassName, t, "MagicEvents", "OnEventRaised");
+                    File.WriteAllText(eventListenerPath, eventListenerContent);
+                }
+
                 //Variable Listeners
                 string variableClassName = MagicLinksUtilities.GetVariableListenerName(t);
 

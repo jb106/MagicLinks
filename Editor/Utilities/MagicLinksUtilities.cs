@@ -111,6 +111,17 @@ namespace MagicLinks
             baseTypes.Add(MagicLinksConst.Collider, typeof(Collider).ToString());
             baseTypes.Add(MagicLinksConst.Color, typeof(Color).ToString());
 
+            baseTypes.Add("ListString", typeof(List<string>).ToString());
+            baseTypes.Add("ListBool", typeof(List<bool>).ToString());
+            baseTypes.Add("ListInt", typeof(List<int>).ToString());
+            baseTypes.Add("ListFloat", typeof(List<float>).ToString());
+            baseTypes.Add("ListVector2", typeof(List<Vector2>).ToString());
+            baseTypes.Add("ListVector3", typeof(List<Vector3>).ToString());
+            baseTypes.Add("ListGameObject", typeof(List<GameObject>).ToString());
+            baseTypes.Add("ListTransform", typeof(List<Transform>).ToString());
+            baseTypes.Add("ListCollider", typeof(List<Collider>).ToString());
+            baseTypes.Add("ListColor", typeof(List<Color>).ToString());
+
             return baseTypes;
         }
 

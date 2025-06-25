@@ -15,6 +15,7 @@ namespace MagicLinks
         public const string VariablesResourcesPath = "MagicLinks/Links/";
 
         public const string EventDict = "_EVENT";
+        public const string ListSuffix = "_LIST";
 
         public const string EventListenerName = "_EventListener";
         public const string VariableListenerName = "_VariableListener";
@@ -56,6 +57,8 @@ namespace MagicLinks
 
         public const string VariableDictTemplate =
             "public Dictionary<string, MagicVariableObservable<TYPE>> NAME = new();";
+        public const string ListDictTemplate =
+            "public Dictionary<string, MagicVariableObservable<List<TYPE>>> NAME = new();";
 
         public const string EventDictTemplate = "public Dictionary<string, MagicEventObservable<TYPE>> NAME = new();";
         public const string EventVoidDictTemplate = "public Dictionary<string, MagicEventVoidObservable> VOID = new();";
@@ -104,6 +107,9 @@ namespace MagicLinks
 
         public static string GetRuntimeField(string t)
         {
+            if (t.StartsWith("List", StringComparison.Ordinal))
+                return UXMLRuntimeFieldsUIPath + "list.uxml";
+
             return UXMLRuntimeFieldsUIPath + t.ToLower() + ".uxml";
         }
     }
