@@ -423,7 +423,7 @@ namespace MagicLinks
             onEventRaised.Invoke(i);
         }
         
-        private IEnumerable<string> GetNames()
+        public IEnumerable<string> GetNames()
         {
             if (_configuration == null || _configuration.typesNamesPairs == null)
                 return new List<string>();
@@ -454,15 +454,15 @@ namespace MagicLinks
             int index = Mathf.Max(0, names.IndexOf(referenceProp.stringValue));
             if (names.Count > 0)
             {
-                index = EditorGUILayout.Popup("Reference", index, names.ToArray());
+                index = UnityEditor.EditorGUILayout.Popup("Reference", index, names.ToArray());
                 referenceProp.stringValue = names[index];
             }
             else
             {
-                referenceProp.stringValue = EditorGUILayout.TextField("Reference", referenceProp.stringValue);
+                referenceProp.stringValue = UnityEditor.EditorGUILayout.TextField("Reference", referenceProp.stringValue);
             }
 
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("onEventRaised"));
+            UnityEditor.EditorGUILayout.PropertyField(serializedObject.FindProperty("onEventRaised"));
             serializedObject.ApplyModifiedProperties();
         }
     }
@@ -507,7 +507,7 @@ namespace MagicLinks
             onEventRaised.Invoke();
         }
         
-        private IEnumerable<string> GetNames()
+        public IEnumerable<string> GetNames()
         {
             if (_configuration == null || _configuration.typesNamesPairs == null)
                 return new List<string>();
@@ -538,15 +538,15 @@ namespace MagicLinks
             int index = Mathf.Max(0, names.IndexOf(referenceProp.stringValue));
             if (names.Count > 0)
             {
-                index = EditorGUILayout.Popup("Reference", index, names.ToArray());
+                index = UnityEditor.EditorGUILayout.Popup("Reference", index, names.ToArray());
                 referenceProp.stringValue = names[index];
             }
             else
             {
-                referenceProp.stringValue = EditorGUILayout.TextField("Reference", referenceProp.stringValue);
+                referenceProp.stringValue = UnityEditor.EditorGUILayout.TextField("Reference", referenceProp.stringValue);
             }
 
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("onEventRaised"));
+            UnityEditor.EditorGUILayout.PropertyField(serializedObject.FindProperty("onEventRaised"));
             serializedObject.ApplyModifiedProperties();
         }
     }
