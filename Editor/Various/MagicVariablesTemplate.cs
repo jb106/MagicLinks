@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System;
 using System.Collections.Generic;
+using System.Collections;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -34,12 +35,14 @@ namespace MagicLinks
             public string key;
             public string type;
             public int magicType;
+            public bool isList;
 
-            public VariableEntry(string key, string type, int magicType)
+            public VariableEntry(string key, string type, int magicType, bool isList)
             {
                 this.key = key;
                 this.type = type;
                 this.magicType = magicType;
+                this.isList = isList;
             }
         }
 
@@ -112,7 +115,7 @@ namespace MagicLinks
             List<DynamicVariable> variables = new List<DynamicVariable>();
             foreach (var v in GetExistingVariables())
             {
-                initialVariables.Add(new VariableEntry(v.vName, v.vLabelType.ToUpper(), v.magicType));
+                initialVariables.Add(new VariableEntry(v.vName, v.vLabelType.ToUpper(), v.magicType, v.isList));
             }
 
             // Feed the variables
@@ -150,7 +153,14 @@ namespace MagicLinks
         
         private string GetDictionaryName(VariableEntry entry)
         {
-            return entry.type.ToUpper() + (entry.magicType == 1 ? MagicLinksConst.EventDict : "");
+            string name = entry.type.ToUpper();
+            if (entry.isList)
+                name += MagicLinksConst.ListSuffix;
+
+            if (entry.magicType == 1)
+                name += MagicLinksConst.EventDict;
+
+            return name;
         }
         
         //STARTUSINGEDITOR
@@ -176,40 +186,43 @@ namespace MagicLinks
             */
             
             Dictionary<string, string> nameToCategory = new();
+            Dictionary<string, bool> nameToList = new();
             foreach (var v in GetExistingVariables())
             {
                 nameToCategory[v.vName] = v.category;
+                nameToList[v.vName] = v.isList;
             }
 
             foreach (var item in mergedList.OrderBy(x => nameToCategory.TryGetValue(x.key, out var cat) ? cat : ""))
             {
                 string category = nameToCategory.TryGetValue(item.key, out var c) ? c : "";
+                bool isList = nameToList.TryGetValue(item.key, out var l) && l;
                 
                 switch (item.type)
                 {
                     case MagicLinksConst.String:
-                        AddLinkToRuntimeUI(new KeyValuePair<string, MagicVariableObservable<string>>(item.key, (MagicVariableObservable<string>)item.variable), item.type, category);
+                        AddLinkToRuntimeUI(new KeyValuePair<string, MagicVariableObservable<string>>(item.key, (MagicVariableObservable<string>)item.variable), item.type, category, isList);
                         break;
                     case MagicLinksConst.Bool:
-                        AddLinkToRuntimeUI(new KeyValuePair<string, MagicVariableObservable<bool>>(item.key, (MagicVariableObservable<bool>)item.variable), item.type, category);
+                        AddLinkToRuntimeUI(new KeyValuePair<string, MagicVariableObservable<bool>>(item.key, (MagicVariableObservable<bool>)item.variable), item.type, category, isList);
                         break;
                     case MagicLinksConst.Int:
-                        AddLinkToRuntimeUI(new KeyValuePair<string, MagicVariableObservable<int>>(item.key, (MagicVariableObservable<int>)item.variable), item.type, category);
+                        AddLinkToRuntimeUI(new KeyValuePair<string, MagicVariableObservable<int>>(item.key, (MagicVariableObservable<int>)item.variable), item.type, category, isList);
                         break;
                     case MagicLinksConst.Float:
-                        AddLinkToRuntimeUI(new KeyValuePair<string, MagicVariableObservable<float>>(item.key, (MagicVariableObservable<float>)item.variable), item.type, category);
+                        AddLinkToRuntimeUI(new KeyValuePair<string, MagicVariableObservable<float>>(item.key, (MagicVariableObservable<float>)item.variable), item.type, category, isList);
                         break;
                     case MagicLinksConst.Vector2:
-                        AddLinkToRuntimeUI(new KeyValuePair<string, MagicVariableObservable<Vector2>>(item.key, (MagicVariableObservable<Vector2>)item.variable), item.type, category);
+                        AddLinkToRuntimeUI(new KeyValuePair<string, MagicVariableObservable<Vector2>>(item.key, (MagicVariableObservable<Vector2>)item.variable), item.type, category, isList);
                         break;
                     case MagicLinksConst.Vector3:
-                        AddLinkToRuntimeUI(new KeyValuePair<string, MagicVariableObservable<Vector3>>(item.key, (MagicVariableObservable<Vector3>)item.variable), item.type, category);
+                        AddLinkToRuntimeUI(new KeyValuePair<string, MagicVariableObservable<Vector3>>(item.key, (MagicVariableObservable<Vector3>)item.variable), item.type, category, isList);
                         break;
                 }
             }
         }
         
-        private void AddLinkToRuntimeUI<T>(KeyValuePair<string, MagicVariableObservable<T>> pair, string t, string category)
+        private void AddLinkToRuntimeUI<T>(KeyValuePair<string, MagicVariableObservable<T>> pair, string t, string category, bool isList)
         {
 
             if (category != _currentCategory)
@@ -236,8 +249,9 @@ namespace MagicLinks
             Label labelTitle = newElement.Q<Label>("LinkName");
             labelTitle.text = pair.Key;
 
+            string fieldPath = MagicLinksConst.GetRuntimeField(isList ? "List" : t);
             VisualTreeAsset field = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(
-                MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.GetRuntimeField(t)));
+                MagicLinksUtilities.GetPackageRelativePath(fieldPath));
             VisualElement newField = field.Instantiate();
             newField.style.flexGrow = 1;
 
@@ -251,26 +265,43 @@ namespace MagicLinks
                 bindCallback(fieldElement, evt => variable.Value = evt.newValue);
             }
 
-            switch (t)
+            if (isList)
             {
-                case MagicLinksConst.String:
-                    BindField<TextField, string>("Field", (f, v) => f.SetValueWithoutNotify(v), (f, cb) => f.RegisterValueChangedCallback(cb));
-                    break;
-                case MagicLinksConst.Bool:
-                    BindField<Toggle, bool>("Field", (f, v) => f.SetValueWithoutNotify(v), (f, cb) => f.RegisterValueChangedCallback(cb));
-                    break;
-                case MagicLinksConst.Int:
-                    BindField<IntegerField, int>("Field", (f, v) => f.SetValueWithoutNotify(v), (f, cb) => f.RegisterValueChangedCallback(cb));
-                    break;
-                case MagicLinksConst.Float:
-                    BindField<FloatField, float>("Field", (f, v) => f.SetValueWithoutNotify(v), (f, cb) => f.RegisterValueChangedCallback(cb));
-                    break;
-                case MagicLinksConst.Vector2:
-                    BindField<InlineVector2Field, Vector2>("Field", (f, v) => f.SetValueWithoutNotify(v), (f, cb) => f.RegisterCallback(cb));
-                    break;
-                case MagicLinksConst.Vector3:
-                    BindField<InlineVector3Field, Vector3>("Field", (f, v) => f.SetValueWithoutNotify(v), (f, cb) => f.RegisterCallback(cb));
-                    break;
+                var listView = newField.Q<ListView>("Field");
+                var obs = pair.Value;
+                var valueProp = obs.GetType().GetProperty("Value");
+                listView.itemsSource = valueProp.GetValue(obs) as IList;
+                var evtInfo = obs.GetType().GetEvent("OnValueChanged");
+                if (evtInfo != null)
+                {
+                    var handler = new System.Action<object>(v => listView.itemsSource = v as IList);
+                    var del = System.Delegate.CreateDelegate(evtInfo.EventHandlerType, handler.Target, handler.Method);
+                    evtInfo.AddEventHandler(obs, del);
+                }
+            }
+            else
+            {
+                switch (t)
+                {
+                    case MagicLinksConst.String:
+                        BindField<TextField, string>("Field", (f, v) => f.SetValueWithoutNotify(v), (f, cb) => f.RegisterValueChangedCallback(cb));
+                        break;
+                    case MagicLinksConst.Bool:
+                        BindField<Toggle, bool>("Field", (f, v) => f.SetValueWithoutNotify(v), (f, cb) => f.RegisterValueChangedCallback(cb));
+                        break;
+                    case MagicLinksConst.Int:
+                        BindField<IntegerField, int>("Field", (f, v) => f.SetValueWithoutNotify(v), (f, cb) => f.RegisterValueChangedCallback(cb));
+                        break;
+                    case MagicLinksConst.Float:
+                        BindField<FloatField, float>("Field", (f, v) => f.SetValueWithoutNotify(v), (f, cb) => f.RegisterValueChangedCallback(cb));
+                        break;
+                    case MagicLinksConst.Vector2:
+                        BindField<InlineVector2Field, Vector2>("Field", (f, v) => f.SetValueWithoutNotify(v), (f, cb) => f.RegisterCallback(cb));
+                        break;
+                    case MagicLinksConst.Vector3:
+                        BindField<InlineVector3Field, Vector3>("Field", (f, v) => f.SetValueWithoutNotify(v), (f, cb) => f.RegisterCallback(cb));
+                        break;
+                }
             }
 
             newElement.Q<VisualElement>("RuntimeLinkItem").Add(newField);

@@ -10,6 +10,7 @@ namespace MagicLinks
         public string initialValue;
         public int magicType;
         public string category;
+        public bool isList;
 
         public bool IsEvent()
         {

@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEditor;
@@ -34,9 +35,21 @@ namespace MagicLinks
 
             string variables = string.Empty;
 
+            var listTypes = new HashSet<string>();
+            foreach (var v in MagicLinksInternalVar.GetExistingVariables())
+            {
+                if (!v.IsEvent() && v.isList)
+                    listTypes.Add(v.vLabelType);
+            }
+
             foreach (string customType in MagicLinksUtilities.GetAllTypes())
             {
                 variables += GetDict(MagicLinksConst.VariableDictTemplate, customType, customType.ToUpper());
+            }
+
+            foreach (string listType in listTypes)
+            {
+                variables += GetDict(MagicLinksConst.ListDictTemplate, listType, listType.ToUpper() + MagicLinksConst.ListSuffix);
             }
 
             variables += "\n \n";
@@ -63,6 +76,11 @@ namespace MagicLinks
             foreach (string customType in MagicLinksUtilities.GetAllTypes())
             {
                 variablesGetter += GetDict(MagicLinksConst.VariableGetterTemplate, customType, customType.ToUpper());
+            }
+
+            foreach (string listType in listTypes)
+            {
+                variablesGetter += GetDict(MagicLinksConst.VariableGetterTemplate, $"List<{listType}>", listType.ToUpper() + MagicLinksConst.ListSuffix);
             }
 
             classContent = classContent.Replace("//MAGICVARIABLESGETTER", variablesGetter);
