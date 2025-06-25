@@ -101,6 +101,7 @@ namespace MagicLinks
         public const string SingleVariableCategory = "Category";
         public const string SingleVariableType = "Type";
         public const string SingleVariableIsList = "IsList";
+        public const string SingleVariableIsListLabel = "IsListLabel";
         public const string SingleVariableDeleteButton = "DeleteButton";
 
         public const string CustomTypesFoldout = "CustomTypesFoldout";

@@ -161,6 +161,7 @@ namespace MagicLinks
                 }
 
                 Toggle listToggle = newUIVariable.Q<Toggle>(MagicLinksConst.SingleVariableIsList);
+                Label isListLabel = newUIVariable.Q<Label>(MagicLinksConst.SingleVariableIsListLabel);
 
                 if (v.IsVoid() == false)
                 {
@@ -170,6 +171,7 @@ namespace MagicLinks
                 else
                 {
                     listToggle.style.display = new StyleEnum<DisplayStyle>(DisplayStyle.None);
+                    isListLabel.style.display = new StyleEnum<DisplayStyle>(DisplayStyle.None);
                 }
 
                 DropdownField magicType = newUIVariable.Q<DropdownField>(MagicLinksConst.SingleVariableMagicType);
