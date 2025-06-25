@@ -161,8 +161,16 @@ namespace MagicLinks
                 }
 
                 Toggle listToggle = newUIVariable.Q<Toggle>(MagicLinksConst.SingleVariableIsList);
-                listToggle.SetValueWithoutNotify(v.isList);
-                listToggle.RegisterValueChangedCallback(evt => { OnIsListChanged(v, evt.newValue); });
+
+                if (v.IsVoid() == false)
+                {
+                    listToggle.SetValueWithoutNotify(v.isList);
+                    listToggle.RegisterValueChangedCallback(evt => { OnIsListChanged(v, evt.newValue); });
+                }
+                else
+                {
+                    listToggle.style.display = new StyleEnum<DisplayStyle>(DisplayStyle.None);
+                }
 
                 DropdownField magicType = newUIVariable.Q<DropdownField>(MagicLinksConst.SingleVariableMagicType);
 
