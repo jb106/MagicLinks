@@ -53,5 +53,12 @@ namespace MagicLinks.Tests
 
             Assert.AreEqual(1, callCount);
         }
+
+        [Test]
+        public void MagicVariableObservable_InitialValueIsSet()
+        {
+            var observable = new MagicVariableObservable<int>(10);
+            Assert.AreEqual(10, observable.Value);
+        }
     }
 }
