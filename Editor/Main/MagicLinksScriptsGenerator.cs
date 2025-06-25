@@ -37,6 +37,7 @@ namespace MagicLinks
             foreach (string customType in MagicLinksUtilities.GetAllTypes())
             {
                 variables += GetDict(MagicLinksConst.VariableDictTemplate, customType, customType.ToUpper());
+                variables += GetDict(MagicLinksConst.ListVariableDictTemplate, customType, customType.ToUpper() + MagicLinksConst.ListDict);
             }
 
             variables += "\n \n";
@@ -45,6 +46,8 @@ namespace MagicLinks
             {
                 variables += GetDict(MagicLinksConst.EventDictTemplate, customType,
                     customType.ToUpper() + MagicLinksConst.EventDict);
+                variables += GetDict(MagicLinksConst.ListEventDictTemplate, customType,
+                    customType.ToUpper() + MagicLinksConst.ListDict + MagicLinksConst.EventDict);
             }
 
             variables += MagicLinksConst.EventVoidDictTemplate;
@@ -63,6 +66,7 @@ namespace MagicLinks
             foreach (string customType in MagicLinksUtilities.GetAllTypes())
             {
                 variablesGetter += GetDict(MagicLinksConst.VariableGetterTemplate, customType, customType.ToUpper());
+                variablesGetter += GetDict(MagicLinksConst.ListVariableGetterTemplate, customType, customType.ToUpper() + MagicLinksConst.ListDict);
             }
 
             classContent = classContent.Replace("//MAGICVARIABLESGETTER", variablesGetter);
@@ -79,6 +83,13 @@ namespace MagicLinks
                 eventsGetter = regex.Replace(eventsGetter, MagicLinksConst.EventDict, 1);
 
                 eventsGetter += eventGetter;
+
+                string listEventGetter = GetDict(MagicLinksConst.ListEventGetterTemplate, customType,
+                    customType.ToUpper() + MagicLinksConst.ListDict + MagicLinksConst.EventDict);
+
+                listEventGetter = listEventGetter.Replace("SHORT", customType.ToUpper() + MagicLinksConst.ListDict);
+
+                eventsGetter += listEventGetter;
             }
 
             eventsGetter += MagicLinksConst.EventVoidGetterTemplate;

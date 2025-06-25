@@ -34,12 +34,14 @@ namespace MagicLinks
             public string key;
             public string type;
             public int magicType;
+            public bool isList;
 
-            public VariableEntry(string key, string type, int magicType)
+            public VariableEntry(string key, string type, int magicType, bool isList)
             {
                 this.key = key;
                 this.type = type;
                 this.magicType = magicType;
+                this.isList = isList;
             }
         }
 
@@ -112,7 +114,7 @@ namespace MagicLinks
             List<DynamicVariable> variables = new List<DynamicVariable>();
             foreach (var v in GetExistingVariables())
             {
-                initialVariables.Add(new VariableEntry(v.vName, v.vLabelType.ToUpper(), v.magicType));
+                initialVariables.Add(new VariableEntry(v.vName, v.vLabelType.ToUpper(), v.magicType, v.isList));
             }
 
             // Feed the variables
@@ -150,7 +152,10 @@ namespace MagicLinks
         
         private string GetDictionaryName(VariableEntry entry)
         {
-            return entry.type.ToUpper() + (entry.magicType == 1 ? MagicLinksConst.EventDict : "");
+            string name = entry.type.ToUpper();
+            if (entry.isList) name += MagicLinksConst.ListDict;
+            if (entry.magicType == 1) name += MagicLinksConst.EventDict;
+            return name;
         }
         
         //STARTUSINGEDITOR

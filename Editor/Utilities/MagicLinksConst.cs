@@ -15,6 +15,7 @@ namespace MagicLinks
         public const string VariablesResourcesPath = "MagicLinks/Links/";
 
         public const string EventDict = "_EVENT";
+        public const string ListDict = "_LIST";
 
         public const string EventListenerName = "_EventListener";
         public const string VariableListenerName = "_VariableListener";
@@ -57,14 +58,24 @@ namespace MagicLinks
         public const string VariableDictTemplate =
             "public Dictionary<string, MagicVariableObservable<TYPE>> NAME = new();";
 
+        public const string ListVariableDictTemplate =
+            "public Dictionary<string, MagicVariableObservable<List<TYPE>>> NAME = new();";
+
         public const string EventDictTemplate = "public Dictionary<string, MagicEventObservable<TYPE>> NAME = new();";
+        public const string ListEventDictTemplate = "public Dictionary<string, MagicEventObservable<List<TYPE>>> NAME = new();";
         public const string EventVoidDictTemplate = "public Dictionary<string, MagicEventVoidObservable> VOID = new();";
 
         public const string VariableGetterTemplate =
             "public static Dictionary<string, MagicVariableObservable<TYPE>> NAME = MagicLinksManager.Instance.NAME;";
 
+        public const string ListVariableGetterTemplate =
+            "public static Dictionary<string, MagicVariableObservable<List<TYPE>>> NAME = MagicLinksManager.Instance.NAME;";
+
         public const string EventGetterTemplate =
             "public static Dictionary<string, MagicEventObservable<TYPE>> SHORT = MagicLinksManager.Instance.NAME;";
+
+        public const string ListEventGetterTemplate =
+            "public static Dictionary<string, MagicEventObservable<List<TYPE>>> SHORT = MagicLinksManager.Instance.NAME;";
 
         public const string EventVoidGetterTemplate =
             "public static Dictionary<string, MagicEventVoidObservable> VOID = MagicLinksManager.Instance.VOID;";
@@ -89,6 +100,7 @@ namespace MagicLinks
         public const string SingleVariableMagicType = "MagicType";
         public const string SingleVariableCategory = "Category";
         public const string SingleVariableType = "Type";
+        public const string SingleVariableIsList = "IsList";
         public const string SingleVariableDeleteButton = "DeleteButton";
 
         public const string CustomTypesFoldout = "CustomTypesFoldout";
