@@ -1,0 +1,13 @@
+{
+    "name": "MagicLinks.Tests",
+    "references": [
+        "MagicLinks"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ],
+    "autoReferenced": false
+}
