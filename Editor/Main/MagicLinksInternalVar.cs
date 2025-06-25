@@ -321,6 +321,30 @@ namespace MagicLinks
                 });
                 field = colorField;
             }
+            else if (type == MagicLinksConst.Vector2)
+            {
+                Vector2Field f = new Vector2Field();
+                Vector2 parsed;
+                if (TryParseVector2(variable.initialValue, out parsed))
+                    f.SetValueWithoutNotify(parsed);
+                f.RegisterValueChangedCallback(v =>
+                {
+                    UpdateDynamicVariableInitialValue(variable, FormatVector2(v.newValue));
+                });
+                field = f;
+            }
+            else if (type == MagicLinksConst.Vector3)
+            {
+                Vector3Field f = new Vector3Field();
+                Vector3 parsed;
+                if (TryParseVector3(variable.initialValue, out parsed))
+                    f.SetValueWithoutNotify(parsed);
+                f.RegisterValueChangedCallback(v =>
+                {
+                    UpdateDynamicVariableInitialValue(variable, FormatVector3(v.newValue));
+                });
+                field = f;
+            }
 
             if (field != null)
             {
@@ -347,6 +371,43 @@ namespace MagicLinks
 
             //AssetDatabase.Refresh();
         }
+
+        private static bool TryParseVector2(string value, out Vector2 result)
+        {
+            result = Vector2.zero;
+            if (string.IsNullOrEmpty(value))
+                return false;
+            var parts = value.Split(',');
+            if (parts.Length != 2)
+                return false;
+            float x, y;
+            if (float.TryParse(parts[0], out x) && float.TryParse(parts[1], out y))
+            {
+                result = new Vector2(x, y);
+                return true;
+            }
+            return false;
+        }
+
+        private static bool TryParseVector3(string value, out Vector3 result)
+        {
+            result = Vector3.zero;
+            if (string.IsNullOrEmpty(value))
+                return false;
+            var parts = value.Split(',');
+            if (parts.Length != 3)
+                return false;
+            float x, y, z;
+            if (float.TryParse(parts[0], out x) && float.TryParse(parts[1], out y) && float.TryParse(parts[2], out z))
+            {
+                result = new Vector3(x, y, z);
+                return true;
+            }
+            return false;
+        }
+
+        private static string FormatVector2(Vector2 v) => $"{v.x},{v.y}";
+        private static string FormatVector3(Vector3 v) => $"{v.x},{v.y},{v.z}";
 
         public static void OnSingleVariableTypeChanged(DynamicVariable variable, string newType)
         {

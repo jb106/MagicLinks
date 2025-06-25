@@ -60,5 +60,19 @@ namespace MagicLinks.Tests
             var observable = new MagicVariableObservable<int>(10);
             Assert.AreEqual(10, observable.Value);
         }
+
+        [Test]
+        public void MagicVariableObservable_Vector2InitialValueIsSet()
+        {
+            var observable = new MagicVariableObservable<UnityEngine.Vector2>(new UnityEngine.Vector2(1f, 2f));
+            Assert.AreEqual(new UnityEngine.Vector2(1f, 2f), observable.Value);
+        }
+
+        [Test]
+        public void MagicVariableObservable_Vector3InitialValueIsSet()
+        {
+            var observable = new MagicVariableObservable<UnityEngine.Vector3>(new UnityEngine.Vector3(1f, 2f, 3f));
+            Assert.AreEqual(new UnityEngine.Vector3(1f, 2f, 3f), observable.Value);
+        }
     }
 }

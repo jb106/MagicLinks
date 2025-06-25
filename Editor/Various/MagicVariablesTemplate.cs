@@ -348,6 +348,16 @@ namespace MagicLinks
                     return int.Parse(value);
                 if (targetType == typeof(float))
                     return float.Parse(value);
+                if (targetType == typeof(Vector2))
+                {
+                    if (TryParseVector2(value, out var v))
+                        return v;
+                }
+                if (targetType == typeof(Vector3))
+                {
+                    if (TryParseVector3(value, out var v))
+                        return v;
+                }
                 if (targetType == typeof(Color))
                 {
                     Color c;
@@ -358,6 +368,40 @@ namespace MagicLinks
             catch { }
 
             return null;
+        }
+
+        private bool TryParseVector2(string value, out Vector2 result)
+        {
+            result = Vector2.zero;
+            if (string.IsNullOrEmpty(value))
+                return false;
+            var parts = value.Split(',');
+            if (parts.Length != 2)
+                return false;
+            float x, y;
+            if (float.TryParse(parts[0], out x) && float.TryParse(parts[1], out y))
+            {
+                result = new Vector2(x, y);
+                return true;
+            }
+            return false;
+        }
+
+        private bool TryParseVector3(string value, out Vector3 result)
+        {
+            result = Vector3.zero;
+            if (string.IsNullOrEmpty(value))
+                return false;
+            var parts = value.Split(',');
+            if (parts.Length != 3)
+                return false;
+            float x, y, z;
+            if (float.TryParse(parts[0], out x) && float.TryParse(parts[1], out y) && float.TryParse(parts[2], out z))
+            {
+                result = new Vector3(x, y, z);
+                return true;
+            }
+            return false;
         }
         
         private Type GetMagicType(bool isEvent)
