@@ -34,12 +34,14 @@ namespace MagicLinks
             public string key;
             public string type;
             public int magicType;
+            public bool isList;
 
-            public VariableEntry(string key, string type, int magicType)
+            public VariableEntry(string key, string type, int magicType, bool isList)
             {
                 this.key = key;
                 this.type = type;
                 this.magicType = magicType;
+                this.isList = isList;
             }
         }
 
@@ -112,7 +114,7 @@ namespace MagicLinks
             List<DynamicVariable> variables = new List<DynamicVariable>();
             foreach (var v in GetExistingVariables())
             {
-                initialVariables.Add(new VariableEntry(v.vName, v.vLabelType.ToUpper(), v.magicType));
+                initialVariables.Add(new VariableEntry(v.vName, v.vLabelType.ToUpper(), v.magicType, v.isList));
             }
 
             // Feed the variables
@@ -150,7 +152,10 @@ namespace MagicLinks
         
         private string GetDictionaryName(VariableEntry entry)
         {
-            return entry.type.ToUpper() + (entry.magicType == 1 ? MagicLinksConst.EventDict : "");
+            string name = entry.type.ToUpper();
+            if (entry.isList) name += MagicLinksConst.ListDict;
+            if (entry.magicType == 1) name += MagicLinksConst.EventDict;
+            return name;
         }
         
         //STARTUSINGEDITOR
@@ -291,11 +296,33 @@ namespace MagicLinks
         private void AddEntryToDictionary(VariableEntry entry, object dict)
         {
             var dictType = dict.GetType();
-            var valueWrapperType = GetMagicType(entry.magicType == 1); // MagicVariableObservable<> ou MagicEventObservable<>
-            var innerValueType = dictType.GetGenericArguments()[1].GetGenericArguments()[0]; // T dans MagicXObservable<T>
 
-            var constructedType = valueWrapperType.MakeGenericType(innerValueType);
-            var valueInstance = Activator.CreateInstance(constructedType);
+            var valueWrapperType = GetMagicType(entry.magicType == 1);
+
+            var innerValueType = dictType.GetGenericArguments()[1].GetGenericArguments()[0];
+
+            object initialValue = null;
+
+            if (innerValueType.IsGenericType && innerValueType.GetGenericTypeDefinition() == typeof(List<>))
+            {
+                var elementType = innerValueType.GetGenericArguments()[0];
+                var listType = typeof(List<>).MakeGenericType(elementType);
+                initialValue = Activator.CreateInstance(listType); // new List<T>()
+            }
+
+            object valueInstance = null;
+            if (initialValue != null)
+            {
+                var ctor = valueWrapperType.MakeGenericType(innerValueType)
+                    .GetConstructor(new Type[] { innerValueType });
+
+                if (ctor != null) valueInstance = ctor.Invoke(new object[] { initialValue });
+                else valueInstance = Activator.CreateInstance(valueWrapperType.MakeGenericType(innerValueType));
+            }
+            else
+            {
+                valueInstance = Activator.CreateInstance(valueWrapperType.MakeGenericType(innerValueType));
+            }
 
             var addMethod = dictType.GetMethod("Add");
             addMethod.Invoke(dict, new object[] { entry.key, valueInstance });

@@ -5,6 +5,8 @@
         <engine:Label text="Variable name" name="Name" selectable="true" class="singleVariableElement" style="-unity-font-style: bold; width: auto; min-width: 200px;" />
         <engine:DropdownField name="MagicType" index="0" class="singleVariableElement minSize" />
         <engine:DropdownField name="Type" class="singleVariableElement minSize" />
+        <engine:Label text="Is List" name="IsListLabel" class="singleVariableElement" />
+        <engine:Toggle name="IsList" class="singleVariableElement" />
         <engine:DropdownField name="Category" choices="Player,Enemy" index="0" class="singleVariableElement minSize" />
         <engine:Button text="x" name="DeleteButton" class="singleVariableElement" style="-unity-font-style: bold; background-color: rgb(188, 71, 71);" />
     </engine:VisualElement>

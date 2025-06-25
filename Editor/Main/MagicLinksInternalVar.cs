@@ -32,6 +32,7 @@ namespace MagicLinks
 
             newVariable.vPath = newVariablePath;
             newVariable.category = MagicLinksConst.CategoryNone;
+            newVariable.isList = false;
 
             File.WriteAllText(newVariablePath, JsonUtility.ToJson(newVariable, true));
             AssetDatabase.Refresh();
@@ -123,7 +124,9 @@ namespace MagicLinks
                     lastCategory = v.category;
                 }
                 
-                config.typesNamesPairs.Add(new MagicLinkTypeNamePair(v.IsVoid() ? string.Empty : v.vLabelType, v.vName));
+                string typeName = v.vLabelType;
+                if (v.isList) typeName = $"List<{typeName}>";
+                config.typesNamesPairs.Add(new MagicLinkTypeNamePair(v.IsVoid() ? string.Empty : typeName, v.vName));
                 
                 //Filter
                 if (currentCategorySelected != MagicLinksConst.CategoryNone)
@@ -155,6 +158,20 @@ namespace MagicLinks
                     {
                         OnSingleVariableTypeChanged(v, newType.newValue);
                     });
+                }
+
+                Toggle listToggle = newUIVariable.Q<Toggle>(MagicLinksConst.SingleVariableIsList);
+                Label isListLabel = newUIVariable.Q<Label>(MagicLinksConst.SingleVariableIsListLabel);
+
+                if (v.IsVoid() == false)
+                {
+                    listToggle.SetValueWithoutNotify(v.isList);
+                    listToggle.RegisterValueChangedCallback(evt => { OnIsListChanged(v, evt.newValue); });
+                }
+                else
+                {
+                    listToggle.style.display = new StyleEnum<DisplayStyle>(DisplayStyle.None);
+                    isListLabel.style.display = new StyleEnum<DisplayStyle>(DisplayStyle.None);
                 }
 
                 DropdownField magicType = newUIVariable.Q<DropdownField>(MagicLinksConst.SingleVariableMagicType);
@@ -215,6 +232,16 @@ namespace MagicLinks
         {
             DynamicVariable variableToUpdate = JsonUtility.FromJson<DynamicVariable>(File.ReadAllText(variable.vPath));
             variableToUpdate.magicType = newMagicType;
+            File.WriteAllText(variable.vPath, JsonUtility.ToJson(variableToUpdate, true));
+
+            AssetDatabase.Refresh();
+            UpdateVariablesUI();
+        }
+
+        public static void OnIsListChanged(DynamicVariable variable, bool isList)
+        {
+            DynamicVariable variableToUpdate = JsonUtility.FromJson<DynamicVariable>(File.ReadAllText(variable.vPath));
+            variableToUpdate.isList = isList;
             File.WriteAllText(variable.vPath, JsonUtility.ToJson(variableToUpdate, true));
 
             AssetDatabase.Refresh();
