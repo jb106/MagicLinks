@@ -35,13 +35,15 @@ namespace MagicLinks
             public string type;
             public int magicType;
             public bool isList;
+            public string initialValue;
 
-            public VariableEntry(string key, string type, int magicType, bool isList)
+            public VariableEntry(string key, string type, int magicType, bool isList, string initialValue)
             {
                 this.key = key;
                 this.type = type;
                 this.magicType = magicType;
                 this.isList = isList;
+                this.initialValue = initialValue;
             }
         }
 
@@ -114,7 +116,7 @@ namespace MagicLinks
             List<DynamicVariable> variables = new List<DynamicVariable>();
             foreach (var v in GetExistingVariables())
             {
-                initialVariables.Add(new VariableEntry(v.vName, v.vLabelType.ToUpper(), v.magicType, v.isList));
+                initialVariables.Add(new VariableEntry(v.vName, v.vLabelType.ToUpper(), v.magicType, v.isList, v.initialValue));
             }
 
             // Feed the variables
@@ -307,25 +309,55 @@ namespace MagicLinks
             {
                 var elementType = innerValueType.GetGenericArguments()[0];
                 var listType = typeof(List<>).MakeGenericType(elementType);
-                initialValue = Activator.CreateInstance(listType); // new List<T>()
+                initialValue = Activator.CreateInstance(listType);
             }
-
-            object valueInstance = null;
-            if (initialValue != null)
+            else if (entry.magicType == 0)
             {
-                var ctor = valueWrapperType.MakeGenericType(innerValueType)
-                    .GetConstructor(new Type[] { innerValueType });
-
-                if (ctor != null) valueInstance = ctor.Invoke(new object[] { initialValue });
-                else valueInstance = Activator.CreateInstance(valueWrapperType.MakeGenericType(innerValueType));
+                initialValue = ParseInitialValue(entry.initialValue, innerValueType);
             }
+
+            object valueInstance;
+            var wrapperType = valueWrapperType.MakeGenericType(innerValueType);
+            var ctor = wrapperType.GetConstructor(new Type[] { innerValueType });
+
+            if (ctor != null && initialValue != null)
+                valueInstance = ctor.Invoke(new object[] { initialValue });
             else
-            {
-                valueInstance = Activator.CreateInstance(valueWrapperType.MakeGenericType(innerValueType));
-            }
+                valueInstance = Activator.CreateInstance(wrapperType);
 
             var addMethod = dictType.GetMethod("Add");
             addMethod.Invoke(dict, new object[] { entry.key, valueInstance });
+        }
+
+        private object ParseInitialValue(string value, Type targetType)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                if (targetType.IsValueType)
+                    return Activator.CreateInstance(targetType);
+                return null;
+            }
+
+            try
+            {
+                if (targetType == typeof(string))
+                    return value;
+                if (targetType == typeof(bool))
+                    return bool.Parse(value);
+                if (targetType == typeof(int))
+                    return int.Parse(value);
+                if (targetType == typeof(float))
+                    return float.Parse(value);
+                if (targetType == typeof(Color))
+                {
+                    Color c;
+                    if (ColorUtility.TryParseHtmlString(value, out c))
+                        return c;
+                }
+            }
+            catch { }
+
+            return null;
         }
         
         private Type GetMagicType(bool isEvent)

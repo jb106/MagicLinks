@@ -33,6 +33,7 @@ namespace MagicLinks
             newVariable.vPath = newVariablePath;
             newVariable.category = MagicLinksConst.CategoryNone;
             newVariable.isList = false;
+            newVariable.initialValue = string.Empty;
 
             File.WriteAllText(newVariablePath, JsonUtility.ToJson(newVariable, true));
             AssetDatabase.Refresh();
@@ -138,7 +139,7 @@ namespace MagicLinks
 
                 VisualElement newUIVariable = variableUXML.Instantiate();
 
-                //AddInitialSelectorToVariableUI(v, newUIVariable);
+                AddInitialSelectorToVariableUI(v, newUIVariable);
 
                 DropdownField field = newUIVariable.Q<DropdownField>(MagicLinksConst.SingleVariableType);
 
@@ -250,15 +251,85 @@ namespace MagicLinks
 
         public static void AddInitialSelectorToVariableUI(DynamicVariable variable, VisualElement variableUI)
         {
-            if (variable.vLabelType == MagicLinksConst.Color)
+            VisualElement container =
+                variableUI.Q<VisualElement>(MagicLinksConst.SingleVariableInitialValue);
+
+            if (container == null)
+                return;
+
+            container.Clear();
+
+            string type = variable.vLabelType;
+
+            VisualElement field = null;
+
+            if (type == MagicLinksConst.String)
             {
-                ColorField colorField = new ColorField();
-                colorField.RegisterValueChangedCallback((v) =>
+                TextField t = new TextField();
+                t.SetValueWithoutNotify(variable.initialValue);
+                t.RegisterValueChangedCallback(v =>
+                {
+                    UpdateDynamicVariableInitialValue(variable, v.newValue);
+                });
+                field = t;
+            }
+            else if (type == MagicLinksConst.Bool)
+            {
+                Toggle t = new Toggle();
+                bool parsed;
+                if (bool.TryParse(variable.initialValue, out parsed))
+                    t.SetValueWithoutNotify(parsed);
+                t.RegisterValueChangedCallback(v =>
                 {
                     UpdateDynamicVariableInitialValue(variable, v.newValue.ToString());
                 });
-                AddClassesToVariableNewElements(colorField);
-                variableUI.ElementAt(0).Add(colorField);
+                field = t;
+            }
+            else if (type == MagicLinksConst.Int)
+            {
+                IntegerField f = new IntegerField();
+                int parsed;
+                if (int.TryParse(variable.initialValue, out parsed))
+                    f.SetValueWithoutNotify(parsed);
+                f.RegisterValueChangedCallback(v =>
+                {
+                    UpdateDynamicVariableInitialValue(variable, v.newValue.ToString());
+                });
+                field = f;
+            }
+            else if (type == MagicLinksConst.Float)
+            {
+                FloatField f = new FloatField();
+                float parsed;
+                if (float.TryParse(variable.initialValue, out parsed))
+                    f.SetValueWithoutNotify(parsed);
+                f.RegisterValueChangedCallback(v =>
+                {
+                    UpdateDynamicVariableInitialValue(variable, v.newValue.ToString());
+                });
+                field = f;
+            }
+            else if (type == MagicLinksConst.Color)
+            {
+                ColorField colorField = new ColorField();
+                Color c;
+                if (ColorUtility.TryParseHtmlString(variable.initialValue, out c))
+                    colorField.SetValueWithoutNotify(c);
+                colorField.RegisterValueChangedCallback(v =>
+                {
+                    UpdateDynamicVariableInitialValue(variable, "#" + ColorUtility.ToHtmlStringRGBA(v.newValue));
+                });
+                field = colorField;
+            }
+
+            if (field != null)
+            {
+                AddClassesToVariableNewElements(field);
+                container.Add(field);
+            }
+            else
+            {
+                container.style.display = new StyleEnum<DisplayStyle>(DisplayStyle.None);
             }
         }
 
