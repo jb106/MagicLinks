@@ -4,7 +4,7 @@ Magic Links is a Unity package that exposes variables and events as assets. Thes
 
 ## Installing
 
-1. Copy this repository into your project's `Packages` folder or add it as a package reference.
+1. Use **Package Manager > Install Package from Git URL** :  ```https://github.com/jb106/MagicLinks.git```
 2. Open **Window > MagicLinkEditor** in the Unity editor.
 
 ## Creating Variables
