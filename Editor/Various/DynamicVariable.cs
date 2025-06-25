@@ -9,6 +9,7 @@ namespace MagicLinks
         public string vPath;
         public string initialValue;
         public int magicType;
+        public bool isList;
         public string category;
 
         public bool IsEvent()

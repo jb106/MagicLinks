@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace MagicLinks
@@ -58,6 +59,7 @@ namespace MagicLinks
             "public Dictionary<string, MagicVariableObservable<TYPE>> NAME = new();";
 
         public const string EventDictTemplate = "public Dictionary<string, MagicEventObservable<TYPE>> NAME = new();";
+        public const string EventListDictTemplate = "public Dictionary<string, MagicEventObservable<List<TYPE>>> NAME = new();";
         public const string EventVoidDictTemplate = "public Dictionary<string, MagicEventVoidObservable> VOID = new();";
 
         public const string VariableGetterTemplate =
@@ -65,6 +67,8 @@ namespace MagicLinks
 
         public const string EventGetterTemplate =
             "public static Dictionary<string, MagicEventObservable<TYPE>> SHORT = MagicLinksManager.Instance.NAME;";
+        public const string EventListGetterTemplate =
+            "public static Dictionary<string, MagicEventObservable<List<TYPE>>> SHORT = MagicLinksManager.Instance.NAME;";
 
         public const string EventVoidGetterTemplate =
             "public static Dictionary<string, MagicEventVoidObservable> VOID = MagicLinksManager.Instance.VOID;";
