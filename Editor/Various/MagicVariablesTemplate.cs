@@ -390,13 +390,12 @@ namespace MagicLinks
 using UnityEngine;
 using UnityEngine.Events;
 using System.Collections.Generic;
-using Sirenix.OdinInspector;
 
 namespace MagicLinks
 {
     public class #NAME : MonoBehaviour
     {
-        [ValueDropdown("GetNames")]
+        [SerializeField]
         public string reference;
         public UnityEvent#ETYPE onEventRaised = new UnityEvent#ETYPE();
         
@@ -424,7 +423,7 @@ namespace MagicLinks
             onEventRaised.Invoke(i);
         }
         
-        private IEnumerable<string> GetNames()
+        public IEnumerable<string> GetNames()
         {
             if (_configuration == null || _configuration.typesNamesPairs == null)
                 return new List<string>();
@@ -439,19 +438,48 @@ namespace MagicLinks
             return names;
         }
     }
+
+#if UNITY_EDITOR
+    [UnityEditor.CustomEditor(typeof(#NAME))]
+    public class #NAMEEditor : UnityEditor.Editor
+    {
+        public override void OnInspectorGUI()
+        {
+            serializedObject.Update();
+
+            var listener = (#NAME)target;
+            var names = new List<string>(listener.GetNames());
+            var referenceProp = serializedObject.FindProperty("reference");
+
+            int index = Mathf.Max(0, names.IndexOf(referenceProp.stringValue));
+            if (names.Count > 0)
+            {
+                index = UnityEditor.EditorGUILayout.Popup("Reference", index, names.ToArray());
+                referenceProp.stringValue = names[index];
+            }
+            else
+            {
+                referenceProp.stringValue = UnityEditor.EditorGUILayout.TextField("Reference", referenceProp.stringValue);
+            }
+
+            UnityEditor.EditorGUILayout.PropertyField(serializedObject.FindProperty("onEventRaised"));
+            serializedObject.ApplyModifiedProperties();
+        }
+    }
+#endif
+
 }
 
 //#SEPARATION
 using UnityEngine;
 using UnityEngine.Events;
 using System.Collections.Generic;
-using Sirenix.OdinInspector;
 
 namespace MagicLinks
 {
     public class Void_EventListener : MonoBehaviour
     {
-        [ValueDropdown("GetNames")]
+        [SerializeField]
         public string reference;
         public UnityEvent onEventRaised = new UnityEvent();
         
@@ -479,7 +507,7 @@ namespace MagicLinks
             onEventRaised.Invoke();
         }
         
-        private IEnumerable<string> GetNames()
+        public IEnumerable<string> GetNames()
         {
             if (_configuration == null || _configuration.typesNamesPairs == null)
                 return new List<string>();
@@ -494,6 +522,36 @@ namespace MagicLinks
             return names;
         }
     }
+
+#if UNITY_EDITOR
+    [UnityEditor.CustomEditor(typeof(Void_EventListener))]
+    public class Void_EventListenerEditor : UnityEditor.Editor
+    {
+        public override void OnInspectorGUI()
+        {
+            serializedObject.Update();
+
+            var listener = (Void_EventListener)target;
+            var names = new List<string>(listener.GetNames());
+            var referenceProp = serializedObject.FindProperty("reference");
+
+            int index = Mathf.Max(0, names.IndexOf(referenceProp.stringValue));
+            if (names.Count > 0)
+            {
+                index = UnityEditor.EditorGUILayout.Popup("Reference", index, names.ToArray());
+                referenceProp.stringValue = names[index];
+            }
+            else
+            {
+                referenceProp.stringValue = UnityEditor.EditorGUILayout.TextField("Reference", referenceProp.stringValue);
+            }
+
+            UnityEditor.EditorGUILayout.PropertyField(serializedObject.FindProperty("onEventRaised"));
+            serializedObject.ApplyModifiedProperties();
+        }
+    }
+#endif
+
 }
 
 */
