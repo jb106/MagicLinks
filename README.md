@@ -1,5 +1,7 @@
 # Magic Links
 
+**This tool is designed with UI Toolkit**
+
 Magic Links is a Unity package that exposes variables and events as assets. These "links" live in your project's `Resources/MagicLinks` folder so they can be referenced without a direct script dependency.
 <img src="https://github.com/user-attachments/assets/7415d0ef-49a5-46a3-b2d3-0633c53338c4" alt="Description" width="600"/>
 
