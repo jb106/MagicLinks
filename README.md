@@ -1,13 +1,15 @@
 # Magic Links
 
 Magic Links is a Unity package that exposes variables and events as assets. These "links" live in your project's `Resources/MagicLinks` folder so they can be referenced without a direct script dependency.
-![image](https://github.com/user-attachments/assets/4feec9cc-42fa-4595-90fc-7fc171aac38f)
+<img src="https://github.com/user-attachments/assets/7415d0ef-49a5-46a3-b2d3-0633c53338c4" alt="Description" width="600"/>
+
 
 ## Installing
 
 1. Use **Package Manager > Install Package from Git URL** :  ```https://github.com/jb106/MagicLinks.git```
 2. Open **Window > MagicLinkEditor** in the Unity editor.
-![image](https://github.com/user-attachments/assets/a14d197b-8796-487c-8b24-1d170d65a762)
+<img src="https://github.com/user-attachments/assets/a14d197b-8796-487c-8b24-1d170d65a762" alt="image 1" width="300"/>
+
 
 
 ## Creating Variables
@@ -18,11 +20,13 @@ Use the **MagicLinkEditor** window to create new links:
 2. A new JSON file is stored in `Assets/Resources/MagicLinks/Links/`.
 3. Choose its type, category and whether it is a variable or event.
 
-![image](https://github.com/user-attachments/assets/36e14eef-77c2-460e-9423-429f9bb27fdb)
-![image](https://github.com/user-attachments/assets/3a74ccc2-6a20-455b-85a4-da396f6090cb)
+<img src="https://github.com/user-attachments/assets/36e14eef-77c2-460e-9423-429f9bb27fdb" alt="image 2" width="500"/>
+</br>
+<img src="https://github.com/user-attachments/assets/3a74ccc2-6a20-455b-85a4-da396f6090cb" alt="image 3" width="500"/>
 
 Custom types can also be added from the editor. Once a type or variable is created the generator will update the `MagicLinksManager` script and listener scripts under `Assets/Resources/MagicLinks`.
-![image](https://github.com/user-attachments/assets/fed3c6e8-994a-48f0-8d7a-bb9e11b7541a)
+
+<img src="https://github.com/user-attachments/assets/fed3c6e8-994a-48f0-8d7a-bb9e11b7541a" alt="image 4" width="300"/>
 
 ## Script Generation
 
@@ -38,7 +42,7 @@ Generated scripts appear in `Assets/Resources/MagicLinks/`:
 
 If **Enable Runtime UI** is checked in the editor window, a prefab from `Runtime/RuntimeLinks.prefab` is instantiated at runtime. This UI lets you view and edit variables live. Use the category filter to show only variables from a given category.
 
-![image](https://github.com/user-attachments/assets/7bd9ca3f-f043-4e6c-873a-d61b805ecfd1)
+<img src="https://github.com/user-attachments/assets/7bd9ca3f-f043-4e6c-873a-d61b805ecfd1" alt="image 5" width="200"/>
 
 ## Example
 
@@ -53,3 +57,7 @@ Listening for an event named `OnJump` of type `bool` can be done using the gener
 ```csharp
 MagicEvents.BOOL["OnJump"].OnEventRaised += HandleJump;
 ```
+
+## Credits
+- Dev @jb106
+- Icons design @MarineLeBorgne
