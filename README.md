@@ -26,7 +26,7 @@ Use the **MagicLinkEditor** window to create new links:
 
 Custom types can also be added from the editor. Once a type or variable is created the generator will update the `MagicLinksManager` script and listener scripts under `Assets/Resources/MagicLinks`.
 
-<img src="https://github.com/user-attachments/assets/fed3c6e8-994a-48f0-8d7a-bb9e11b7541a" alt="image 4" width="300"/>
+<img src="https://github.com/user-attachments/assets/fed3c6e8-994a-48f0-8d7a-bb9e11b7541a" alt="image 4" width="200"/>
 
 ## Script Generation
 
@@ -59,5 +59,5 @@ MagicEvents.BOOL["OnJump"].OnEventRaised += HandleJump;
 ```
 
 ## Credits
-- Dev @jb106
-- Icons design @MarineLeBorgne
+- Dev [jb106](https://github.com/jb106)
+- Icons design [MarineLeBorgne](https://github.com/MarineLeBorgne)
