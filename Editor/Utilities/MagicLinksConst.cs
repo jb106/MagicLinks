@@ -103,6 +103,7 @@ namespace MagicLinks
         public const string SingleVariableIsList = "IsList";
         public const string SingleVariableIsListLabel = "IsListLabel";
         public const string SingleVariableDeleteButton = "DeleteButton";
+        public const string SingleVariableInitialValue = "InitialValue";
 
         public const string CustomTypesFoldout = "CustomTypesFoldout";
         public const string CustomTypeElementName = "CustomTypeName";
