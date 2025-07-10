@@ -59,7 +59,7 @@ namespace MagicLinks
             "public Dictionary<string, MagicVariableObservable<TYPE>> NAME = new();";
 
         public const string ListVariableDictTemplate =
-            "public Dictionary<string, MagicVariableObservable<List<TYPE>>> NAME = new();";
+            "public Dictionary<string, MagicListVariableObservable<List<TYPE>>> NAME = new();";
 
         public const string EventDictTemplate = "public Dictionary<string, MagicEventObservable<TYPE>> NAME = new();";
         public const string ListEventDictTemplate = "public Dictionary<string, MagicEventObservable<List<TYPE>>> NAME = new();";
@@ -69,7 +69,7 @@ namespace MagicLinks
             "public static Dictionary<string, MagicVariableObservable<TYPE>> NAME = MagicLinksManager.Instance.NAME;";
 
         public const string ListVariableGetterTemplate =
-            "public static Dictionary<string, MagicVariableObservable<List<TYPE>>> NAME = MagicLinksManager.Instance.NAME;";
+            "public static Dictionary<string, MagicListVariableObservable<List<TYPE>>> NAME = MagicLinksManager.Instance.NAME;";
 
         public const string EventGetterTemplate =
             "public static Dictionary<string, MagicEventObservable<TYPE>> SHORT = MagicLinksManager.Instance.NAME;";
