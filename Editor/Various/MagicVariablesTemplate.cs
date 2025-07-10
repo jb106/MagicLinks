@@ -297,7 +297,7 @@ namespace MagicLinks
         {
             var dictType = dict.GetType();
 
-            var valueWrapperType = GetMagicType(entry.magicType == 1);
+            var valueWrapperType = GetMagicType(entry.magicType == 1, entry.isList);
 
             var innerValueType = dictType.GetGenericArguments()[1].GetGenericArguments()[0];
 
@@ -328,10 +328,12 @@ namespace MagicLinks
             addMethod.Invoke(dict, new object[] { entry.key, valueInstance });
         }
         
-        private Type GetMagicType(bool isEvent)
+        private Type GetMagicType(bool isEvent, bool isList)
         {
-            if (isEvent) return typeof(MagicEventObservable<>);
-            return typeof(MagicVariableObservable<>);
+            if (isEvent)
+                return typeof(MagicEventObservable<>);
+            else
+                return isList ? typeof(MagicListVariableObservable<>) : typeof(MagicVariableObservable<>);
         }
         
         private List<DynamicVariable> GetExistingVariables()
