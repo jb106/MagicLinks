@@ -53,9 +53,9 @@ namespace MagicLinks
             Instance = this;
             
             
+            //STARTUSINGEDITOR
             MagicLinksConfiguration config = MagicLinksUtilities.GetConfiguration();
             
-            //STARTUSINGEDITOR
             //Create the runtime UI
             if (config.enableRuntimeUI)
             {
