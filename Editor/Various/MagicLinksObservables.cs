@@ -80,6 +80,15 @@ namespace MagicLinks.Observables
             return removed;
         }
 
+        public void RemoveAt(int index)
+        {
+            T temp = _buffer[index];
+            
+            _buffer.RemoveAt(index);
+            OnItemRemoved?.Invoke(temp);
+            NotifyValueChanged();
+        }
+
         public void Clear()
         {
             if (_buffer.Count == 0) return;
