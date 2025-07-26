@@ -62,7 +62,7 @@ MagicEvents.BOOL["OnJump"].OnEventRaised += HandleJump;
 
 ## List Modification Methods
 
-SetAt — replace the Player at index 0 with a new instance
+SetAt Example — Replace the element at the specified index with a new instance
 ```csharp
 var players = MagicVariables.PLAYER_LIST["Players"];
 var newPlayer = new Player {
@@ -73,7 +73,7 @@ var newPlayer = new Player {
 players.SetAt(0, newPlayer);
 ```
 
-ModifyAt — increase MoveSpeed of the Player at index 1
+ModifyAt — Modify a specific field of the element at a given index
 ```csharp
 var players = MagicVariables.PLAYER_LIST["Players"];
 players.ModifyAt(1, p => {
@@ -81,7 +81,7 @@ players.ModifyAt(1, p => {
 });
 ```
 
-Modify — find the Player named "Bob" and set Attack to 20
+Modify — Find an instance by condition and modify one or more of its fields
 ```csharp
 var players = MagicVariables.PLAYER_LIST["Players"];
 players.Modify(
