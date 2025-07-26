@@ -60,6 +60,38 @@ Listening for an event named `OnJump` of type `bool` can be done using the gener
 MagicEvents.BOOL["OnJump"].OnEventRaised += HandleJump;
 ```
 
+## List Modification Methods
+
+SetAt — replace the Player at index 0 with a new instance
+```csharp
+var players = MagicVariables.PLAYER_LIST["Players"];
+var newPlayer = new Player {
+    Name      = "Alice",
+    MoveSpeed = 6.5f,
+    Attack    = 12
+};
+players.SetAt(0, newPlayer);
+```
+
+ModifyAt — increase MoveSpeed of the Player at index 1
+```csharp
+var players = MagicVariables.PLAYER_LIST["Players"];
+players.ModifyAt(1, p => {
+    p.MoveSpeed += 1.0f; // increase movement speed by 1
+});
+```
+
+Modify — find the Player named "Bob" and set Attack to 20
+```csharp
+var players = MagicVariables.PLAYER_LIST["Players"];
+players.Modify(
+    match:  p => p.Name == "Bob",
+    update: p => {
+        p.Attack = 20; // set attack value to 20
+    }
+);
+```
+
 ## Credits
 - Dev [jb106](https://github.com/jb106)
 - Icons design [MarineLeBorgne](https://github.com/MarineLeBorgne)
