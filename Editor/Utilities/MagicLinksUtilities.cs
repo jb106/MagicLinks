@@ -14,8 +14,6 @@ namespace MagicLinks
             if (Directory.Exists(MagicLinksConst.ConfigurationPath) == false)
                 Directory.CreateDirectory(MagicLinksConst.ConfigurationPath);
 
-            AssetDatabase.Refresh();
-
             string fullPath = Path.Combine(MagicLinksConst.ConfigurationPath, MagicLinksConst.ConfigurationName);
 
             if (File.Exists(fullPath))
