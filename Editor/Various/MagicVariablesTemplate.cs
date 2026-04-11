@@ -35,13 +35,15 @@ namespace MagicLinks
             public string type;
             public int magicType;
             public bool isList;
+            public string category;
 
-            public VariableEntry(string key, string type, int magicType, bool isList)
+            public VariableEntry(string key, string type, int magicType, bool isList, string category)
             {
                 this.key = key;
                 this.type = type;
                 this.magicType = magicType;
                 this.isList = isList;
+                this.category = category;
             }
         }
 
@@ -114,7 +116,7 @@ namespace MagicLinks
             List<DynamicVariable> variables = new List<DynamicVariable>();
             foreach (var v in GetExistingVariables())
             {
-                initialVariables.Add(new VariableEntry(v.vName, v.vLabelType.ToUpper(), v.magicType, v.isList));
+                initialVariables.Add(new VariableEntry(v.vName, v.vLabelType.ToUpper(), v.magicType, v.isList, v.category));
             }
 
             // Feed the variables
@@ -157,7 +159,62 @@ namespace MagicLinks
             if (entry.magicType == 1) name += MagicLinksConst.EventDict;
             return name;
         }
-        
+
+        public IEnumerable<string> GetVariableKeys()
+        {
+            foreach (var entry in initialVariables)
+                if (entry.magicType == 0) yield return entry.key;
+        }
+
+        public IEnumerable<string> GetVariableKeysByCategory(string category)
+        {
+            foreach (var entry in initialVariables)
+                if (entry.magicType == 0 && entry.category == category) yield return entry.key;
+        }
+
+        public void ResetAll()
+        {
+            foreach (var entry in initialVariables)
+            {
+                if (entry.magicType != 0) continue;
+                ResetEntry(entry);
+            }
+        }
+
+        public void ResetCategory(string category)
+        {
+            foreach (var entry in initialVariables)
+            {
+                if (entry.magicType != 0 || entry.category != category) continue;
+                ResetEntry(entry);
+            }
+        }
+
+        public void ResetVariable(string key)
+        {
+            var entry = initialVariables.Find(e => e.key == key && e.magicType == 0);
+            if (entry == null)
+            {
+                Debug.LogWarning($"[MagicLinks] Variable '{key}' not found.");
+                return;
+            }
+            ResetEntry(entry);
+        }
+
+        private void ResetEntry(VariableEntry entry)
+        {
+            string dictName = GetDictionaryName(entry);
+            var field = GetType().GetField(dictName, BindingFlags.Public | BindingFlags.Instance);
+            if (field == null) return;
+
+            var dict = field.GetValue(this);
+            object[] args = new object[] { entry.key, null };
+            bool found = (bool)dict.GetType().GetMethod("TryGetValue").Invoke(dict, args);
+            if (!found) return;
+
+            args[1].GetType().GetMethod("Reset")?.Invoke(args[1], null);
+        }
+
         //STARTUSINGEDITOR
         private void InstantiateRuntimeVariables()
         {
@@ -377,6 +434,12 @@ namespace MagicLinks
     public static class MagicVariables
     {
         //MAGICVARIABLESGETTER
+
+        public static IEnumerable<string> GetVariableKeys() => MagicLinksManager.Instance.GetVariableKeys();
+        public static IEnumerable<string> GetVariableKeysByCategory(string category) => MagicLinksManager.Instance.GetVariableKeysByCategory(category);
+        public static void ResetAll() => MagicLinksManager.Instance.ResetAll();
+        public static void ResetCategory(string category) => MagicLinksManager.Instance.ResetCategory(category);
+        public static void ResetVariable(string key) => MagicLinksManager.Instance.ResetVariable(key);
     }
 
     public static class MagicEvents

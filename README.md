@@ -92,6 +92,49 @@ players.Modify(
 );
 ```
 
+## Reset & Iteration
+
+### Reset all variables to their default value
+
+Resets every magic variable to its type default (`0`, `false`, `null`, empty list…). Events are not affected.
+
+```csharp
+MagicVariables.ResetAll();
+```
+
+### Reset a single variable
+
+```csharp
+MagicVariables.ResetVariable("PlayerHealth");
+MagicVariables.ResetVariable("Inventory"); // works on list variables too
+```
+
+### Reset all variables in a category
+
+Variables are assigned a category in the MagicLinkEditor. You can reset an entire category at once:
+
+```csharp
+MagicVariables.ResetCategory("Combat");
+```
+
+### Iterate over all variable keys
+
+```csharp
+foreach (string key in MagicVariables.GetVariableKeys())
+{
+    Debug.Log(key);
+}
+```
+
+### Iterate over variable keys filtered by category
+
+```csharp
+foreach (string key in MagicVariables.GetVariableKeysByCategory("Combat"))
+{
+    Debug.Log(key);
+}
+```
+
 ## Credits
 - Dev [jb106](https://github.com/jb106)
 - Icons design [MarineLeBorgne](https://github.com/MarineLeBorgne)

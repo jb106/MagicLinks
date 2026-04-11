@@ -50,6 +50,8 @@ namespace MagicLinks.Observables
 
         public MagicVariableObservable() => _value = default;
         public MagicVariableObservable(T initialValue) => _value = initialValue;
+
+        public void Reset() => Value = default;
     }
     
     public class MagicListVariableObservable<T>
@@ -127,6 +129,8 @@ namespace MagicLinks.Observables
         OnItemChanged?.Invoke(item);
         NotifyValueChanged();
     }
+
+    public void Reset() => Clear();
 
     private void NotifyValueChanged()
     {
