@@ -48,10 +48,21 @@ namespace MagicLinks
         }
 
         private List<VariableEntry> initialVariables = new List<VariableEntry>();
+
+        private readonly Dictionary<string, FieldInfo> _dictFieldCache = new Dictionary<string, FieldInfo>();
+        private readonly Dictionary<Type, MethodInfo> _tryGetValueCache = new Dictionary<Type, MethodInfo>();
+        private readonly Dictionary<Type, MethodInfo> _resetMethodCache = new Dictionary<Type, MethodInfo>();
+        private readonly Dictionary<Type, MethodInfo> _addMethodCache = new Dictionary<Type, MethodInfo>();
+
+        private List<DynamicVariable> _cachedExistingVariables;
         private void Awake()
         {
-            if(Instance != null) Destroy(gameObject);
-            
+            if (Instance != null)
+            {
+                Destroy(gameObject);
+                return;
+            }
+
             Instance = this;
             
             
@@ -112,9 +123,9 @@ namespace MagicLinks
             //----------------------------------------------------------
             //----------------------------------------------------------
 
-            // Load the variables
-            List<DynamicVariable> variables = new List<DynamicVariable>();
-            foreach (var v in GetExistingVariables())
+            // Load the variables once and reuse
+            _cachedExistingVariables = GetExistingVariables();
+            foreach (var v in _cachedExistingVariables)
             {
                 initialVariables.Add(new VariableEntry(v.vName, v.vLabelType.ToUpper(), v.magicType, v.isList, v.category));
             }
@@ -129,7 +140,7 @@ namespace MagicLinks
                 }
 
                 string dictName = GetDictionaryName(entry);
-                var field = GetType().GetField(dictName, BindingFlags.Public | BindingFlags.Instance);
+                var field = GetCachedDictField(dictName);
 
                 if (field == null)
                 {
@@ -158,6 +169,14 @@ namespace MagicLinks
             if (entry.isList) name += MagicLinksConst.ListDict;
             if (entry.magicType == 1) name += MagicLinksConst.EventDict;
             return name;
+        }
+
+        private FieldInfo GetCachedDictField(string dictName)
+        {
+            if (_dictFieldCache.TryGetValue(dictName, out var cached)) return cached;
+            var field = GetType().GetField(dictName, BindingFlags.Public | BindingFlags.Instance);
+            _dictFieldCache[dictName] = field;
+            return field;
         }
 
         public IEnumerable<string> GetVariableKeys()
@@ -204,20 +223,45 @@ namespace MagicLinks
         private void ResetEntry(VariableEntry entry)
         {
             string dictName = GetDictionaryName(entry);
-            var field = GetType().GetField(dictName, BindingFlags.Public | BindingFlags.Instance);
+            var field = GetCachedDictField(dictName);
             if (field == null) return;
 
             var dict = field.GetValue(this);
-            object[] args = new object[] { entry.key, null };
-            bool found = (bool)dict.GetType().GetMethod("TryGetValue").Invoke(dict, args);
-            if (!found) return;
+            var dictType = dict.GetType();
 
-            args[1].GetType().GetMethod("Reset")?.Invoke(args[1], null);
+            if (!_tryGetValueCache.TryGetValue(dictType, out var tryGet))
+            {
+                tryGet = dictType.GetMethod("TryGetValue");
+                _tryGetValueCache[dictType] = tryGet;
+            }
+
+            object[] args = new object[] { entry.key, null };
+            bool found = (bool)tryGet.Invoke(dict, args);
+            if (!found || args[1] == null) return;
+
+            var valueType = args[1].GetType();
+            if (!_resetMethodCache.TryGetValue(valueType, out var resetMethod))
+            {
+                resetMethod = valueType.GetMethod("Reset");
+                _resetMethodCache[valueType] = resetMethod;
+            }
+
+            resetMethod?.Invoke(args[1], null);
         }
 
         //STARTUSINGEDITOR
+        private VisualTreeAsset _runtimeHeaderVTA;
+        private VisualTreeAsset _runtimeLinkVTA;
+        private readonly Dictionary<string, VisualTreeAsset> _runtimeFieldVTACache = new Dictionary<string, VisualTreeAsset>();
+
         private void InstantiateRuntimeVariables()
         {
+            // Pre-load VTAs once instead of per-link
+            _runtimeHeaderVTA = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(
+                MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.UXMLRuntimeLinkHeaderPath));
+            _runtimeLinkVTA = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(
+                MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.UXMLRuntimeLinkItemPath));
+
             List<(string key, object variable, string type)> mergedList = new();
 
             void MergeVariables<T>(Dictionary<string, MagicVariableObservable<T>> dict, string typeName)
@@ -238,7 +282,9 @@ namespace MagicLinks
             */
             
             Dictionary<string, string> nameToCategory = new();
-            foreach (var v in GetExistingVariables())
+            // Reuse the list already loaded in Awake instead of re-reading from Resources
+            var sourceVars = _cachedExistingVariables ?? GetExistingVariables();
+            foreach (var v in sourceVars)
             {
                 nameToCategory[v.vName] = v.category;
             }
@@ -278,28 +324,26 @@ namespace MagicLinks
             {
                 if (category != string.Empty)
                 {
-                    VisualTreeAsset headerElement = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(
-                        Path.Combine(MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.UXMLRuntimeLinkHeaderPath)));
-
-                    VisualElement newHeader = headerElement.Instantiate();
+                    VisualElement newHeader = _runtimeHeaderVTA.Instantiate();
                     newHeader.Q<Label>("HeaderName").text = category;
                     _runtimeContainer.Add(newHeader);
-                    
+
                     AddInstantiatedToList(category, newHeader);
                 }
 
                 _currentCategory = category;
             }
 
-            VisualTreeAsset linkElement = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(
-                Path.Combine(MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.UXMLRuntimeLinkItemPath)));
-
-            VisualElement newElement = linkElement.Instantiate();
+            VisualElement newElement = _runtimeLinkVTA.Instantiate();
             Label labelTitle = newElement.Q<Label>("LinkName");
             labelTitle.text = pair.Key;
 
-            VisualTreeAsset field = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(
-                MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.GetRuntimeField(t)));
+            if (!_runtimeFieldVTACache.TryGetValue(t, out var field))
+            {
+                field = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(
+                    MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.GetRuntimeField(t)));
+                _runtimeFieldVTACache[t] = field;
+            }
             VisualElement newField = field.Instantiate();
             newField.style.flexGrow = 1;
 
@@ -381,7 +425,11 @@ namespace MagicLinks
                 valueInstance = Activator.CreateInstance(valueWrapperType.MakeGenericType(innerValueType));
             }
 
-            var addMethod = dictType.GetMethod("Add");
+            if (!_addMethodCache.TryGetValue(dictType, out var addMethod))
+            {
+                addMethod = dictType.GetMethod("Add");
+                _addMethodCache[dictType] = addMethod;
+            }
             addMethod.Invoke(dict, new object[] { entry.key, valueInstance });
         }
         

@@ -26,6 +26,7 @@ namespace MagicLinks.Observables
 
     public class MagicVariableObservable<T>
     {
+        private static readonly EqualityComparer<T> _comparer = EqualityComparer<T>.Default;
         private T _value;
 
         public T Value
@@ -33,14 +34,14 @@ namespace MagicLinks.Observables
             get => _value;
             set
             {
-                if (!Equals(_value, value))
+                if (!_comparer.Equals(_value, value))
                 {
                     _value = value;
                     NotifyValueChanged();
                 }
             }
         }
-        
+
         protected void NotifyValueChanged()
         {
             OnValueChanged?.Invoke(_value);
@@ -57,9 +58,9 @@ namespace MagicLinks.Observables
     public class MagicListVariableObservable<T>
 {
     private readonly List<T> _buffer = new List<T>();
+    private System.Collections.ObjectModel.ReadOnlyCollection<T> _readOnlyView;
 
-    // Expose une vue en lecture seule
-    public IReadOnlyList<T> Value => _buffer.AsReadOnly();
+    public IReadOnlyList<T> Value => _readOnlyView ??= _buffer.AsReadOnly();
 
     // Events
     public event Action<List<T>> OnValueChanged;
@@ -134,7 +135,7 @@ namespace MagicLinks.Observables
 
     private void NotifyValueChanged()
     {
-        OnValueChanged?.Invoke(new List<T>(_buffer));
+        OnValueChanged?.Invoke(_buffer);
     }
 }
 
