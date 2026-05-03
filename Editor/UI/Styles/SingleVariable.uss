@@ -6,3 +6,10 @@
 .minSize {
     flex-grow: 1;
 }
+
+/* Truncate long variable names with an ellipsis instead of pushing the layout */
+.variableName {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

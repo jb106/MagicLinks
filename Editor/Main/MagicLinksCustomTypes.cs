@@ -9,8 +9,11 @@ namespace MagicLinks
     {
         public static void CreateType()
         {
-            string type = MagicLinkEditor.Instance.rootVisualElement.Q<TextField>(MagicLinksConst.TypeTextFieldClass)
-                .value;
+            TextField typeField = MagicLinkEditor.Instance.rootVisualElement
+                .Q<TextField>(MagicLinksConst.TypeTextFieldClass);
+            string type = typeField.value;
+
+            if (string.IsNullOrWhiteSpace(type)) return;
 
             if (MagicLinksConst.DoesTypeExist(type) == false)
             {
@@ -20,12 +23,11 @@ namespace MagicLinks
 
             MagicLinksConfiguration config = MagicLinksUtilities.GetConfiguration();
 
-            Debug.Log(type);
-            if (type == string.Empty) return;
             if (config.customTypes.Contains(type) || MagicLinksUtilities.GetBaseTypes().ContainsValue(type)) return;
 
             config.customTypes.Add(type);
             EditorUtility.SetDirty(config);
+            typeField.SetValueWithoutNotify(string.Empty);
             UpdateTypes();
             MagicLinksInternalVar.UpdateVariablesUI();
             MagicLinksScriptsGenerator.GenerateMagicVariablesScript(false);

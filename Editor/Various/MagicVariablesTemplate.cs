@@ -33,14 +33,18 @@ namespace MagicLinks
         {
             public string key;
             public string type;
+            public string labelType;
+            public string initialValueRaw;
             public int magicType;
             public bool isList;
             public string category;
 
-            public VariableEntry(string key, string type, int magicType, bool isList, string category)
+            public VariableEntry(string key, string type, string labelType, string initialValueRaw, int magicType, bool isList, string category)
             {
                 this.key = key;
                 this.type = type;
+                this.labelType = labelType;
+                this.initialValueRaw = initialValueRaw;
                 this.magicType = magicType;
                 this.isList = isList;
                 this.category = category;
@@ -127,7 +131,7 @@ namespace MagicLinks
             _cachedExistingVariables = GetExistingVariables();
             foreach (var v in _cachedExistingVariables)
             {
-                initialVariables.Add(new VariableEntry(v.vName, v.vLabelType.ToUpper(), v.magicType, v.isList, v.category));
+                initialVariables.Add(new VariableEntry(v.vName, v.vLabelType.ToUpper(), v.vLabelType, v.initialValue, v.magicType, v.isList, v.category));
             }
 
             // Feed the variables
@@ -409,6 +413,14 @@ namespace MagicLinks
                 var elementType = innerValueType.GetGenericArguments()[0];
                 var listType = typeof(List<>).MakeGenericType(elementType);
                 initialValue = Activator.CreateInstance(listType); // new List<T>()
+            }
+            else if (entry.magicType == 0
+                     && MagicLinksInitialValue.IsSupported(entry.labelType, entry.isList, entry.magicType)
+                     && MagicLinksInitialValue.TryParse(entry.labelType, entry.initialValueRaw, out var parsed)
+                     && parsed != null
+                     && innerValueType.IsInstanceOfType(parsed))
+            {
+                initialValue = parsed;
             }
 
             object valueInstance = null;

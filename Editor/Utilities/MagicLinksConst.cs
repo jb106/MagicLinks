@@ -103,6 +103,22 @@ namespace MagicLinks
         public const string SingleVariableIsList = "IsList";
         public const string SingleVariableIsListLabel = "IsListLabel";
         public const string SingleVariableDeleteButton = "DeleteButton";
+        public const string SingleVariableExpandToggle = "ExpandToggle";
+        public const string SingleVariableInitialValueContainer = "InitialValueContainer";
+        public const string SingleVariableSettings = "Settings";
+
+        public const string ExpandSessionKeyPrefix = "MagicLinks_Var_Expanded_";
+        public const string ExpandedArrow = "▾";
+        public const string CollapsedArrow = "▸";
+
+        public const string MainSplitViewName = "MainSplitView";
+        public const string LeftPanelName = "LeftPanel";
+        public const string CollapseLeftPanelButton = "CollapseLeftPanel";
+        public const string ExpandLeftPanelButton = "ExpandLeftPanel";
+
+        public const string LeftPanelCollapsedKey = "MagicLinks_LeftPanelCollapsed";
+        public const string LeftPanelWidthKey = "MagicLinks_LeftPanelWidth";
+        public const float LeftPanelDefaultWidth = 240f;
 
         public const string CustomTypesFoldout = "CustomTypesFoldout";
         public const string CustomTypeElementName = "CustomTypeName";

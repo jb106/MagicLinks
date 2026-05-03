@@ -28,6 +28,7 @@ namespace MagicLinks.Observables
     {
         private static readonly EqualityComparer<T> _comparer = EqualityComparer<T>.Default;
         private T _value;
+        private readonly T _initialValue;
 
         public T Value
         {
@@ -49,10 +50,21 @@ namespace MagicLinks.Observables
 
         public event Action<T> OnValueChanged;
 
-        public MagicVariableObservable() => _value = default;
-        public MagicVariableObservable(T initialValue) => _value = initialValue;
+        public MagicVariableObservable()
+        {
+            _value = default;
+            _initialValue = default;
+        }
 
-        public void Reset() => Value = default;
+        public MagicVariableObservable(T initialValue)
+        {
+            _value = initialValue;
+            _initialValue = initialValue;
+        }
+
+        // Reset to the value provided at construction (the inspector "initial value"),
+        // or default(T) if no initial value was provided.
+        public void Reset() => Value = _initialValue;
     }
     
     public class MagicListVariableObservable<T>

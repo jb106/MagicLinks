@@ -13,8 +13,11 @@ namespace MagicLinks
     {
         public static void CreateVariable()
         {
-            string variableName = MagicLinkEditor.Instance.rootVisualElement
-                .Q<TextField>(MagicLinksConst.VariableNameTextFieldClass).value;
+            TextField nameField = MagicLinkEditor.Instance.rootVisualElement
+                .Q<TextField>(MagicLinksConst.VariableNameTextFieldClass);
+            string variableName = nameField.value;
+
+            if (string.IsNullOrWhiteSpace(variableName)) return;
 
             MagicLinksUtilities.CreateVariablesFolder();
 
@@ -37,6 +40,7 @@ namespace MagicLinks
             File.WriteAllText(newVariablePath, JsonUtility.ToJson(newVariable, true));
             AssetDatabase.ImportAsset(newVariablePath);
 
+            nameField.SetValueWithoutNotify(string.Empty);
             UpdateVariablesUI();
         }
 
@@ -139,7 +143,8 @@ namespace MagicLinks
 
                 VisualElement newUIVariable = variableUXML.Instantiate();
 
-                //AddInitialSelectorToVariableUI(v, newUIVariable);
+                SetupVariableFoldout(v, newUIVariable);
+                AddInitialSelectorToVariableUI(v, newUIVariable);
 
                 DropdownField field = newUIVariable.Q<DropdownField>(MagicLinksConst.SingleVariableType);
 
@@ -253,31 +258,117 @@ namespace MagicLinks
 
         public static void AddInitialSelectorToVariableUI(DynamicVariable variable, VisualElement variableUI)
         {
-            if (variable.vLabelType == MagicLinksConst.Color)
-            {
-                ColorField colorField = new ColorField();
-                colorField.RegisterValueChangedCallback((v) =>
-                {
-                    UpdateDynamicVariableInitialValue(variable, v.newValue.ToString());
-                });
-                AddClassesToVariableNewElements(colorField);
-                variableUI.ElementAt(0).Add(colorField);
-            }
+            VisualElement container = variableUI.Q<VisualElement>(MagicLinksConst.SingleVariableInitialValueContainer);
+            if (container == null) return;
+
+            container.Clear();
+
+            if (!MagicLinksInitialValue.IsSupported(variable.vLabelType, variable.isList, variable.magicType))
+                return;
+
+            VisualElement field = BuildInitialValueField(variable);
+            if (field == null) return;
+
+            field.style.flexGrow = 1;
+            field.style.maxWidth = 240;
+            container.Add(field);
         }
 
-        public static void AddClassesToVariableNewElements(VisualElement e)
+        private static void SetupVariableFoldout(DynamicVariable variable, VisualElement variableUI)
         {
-            e.AddToClassList("singleVariableElement");
-            e.AddToClassList("minSize");
+            VisualElement settings = variableUI.Q<VisualElement>(MagicLinksConst.SingleVariableSettings);
+            Button toggle = variableUI.Q<Button>(MagicLinksConst.SingleVariableExpandToggle);
+            if (settings == null || toggle == null) return;
+
+            string sessionKey = MagicLinksConst.ExpandSessionKeyPrefix + variable.vName;
+            bool expanded = SessionState.GetBool(sessionKey, false);
+
+            ApplyExpandedState(settings, toggle, expanded);
+
+            toggle.clicked += () =>
+            {
+                bool newState = settings.style.display == DisplayStyle.None;
+                SessionState.SetBool(sessionKey, newState);
+                ApplyExpandedState(settings, toggle, newState);
+            };
         }
+
+        private static void ApplyExpandedState(VisualElement settings, Button toggle, bool expanded)
+        {
+            settings.style.display = expanded ? DisplayStyle.Flex : DisplayStyle.None;
+            toggle.text = expanded ? MagicLinksConst.ExpandedArrow : MagicLinksConst.CollapsedArrow;
+        }
+
+        private static VisualElement BuildInitialValueField(DynamicVariable variable)
+        {
+            MagicLinksInitialValue.TryParse(variable.vLabelType, variable.initialValue, out object parsed);
+
+            switch (variable.vLabelType)
+            {
+                case MagicLinksConst.String:
+                {
+                    var f = new TextField();
+                    f.SetValueWithoutNotify(parsed as string ?? string.Empty);
+                    f.RegisterValueChangedCallback(e => UpdateDynamicVariableInitialValue(variable, e.newValue));
+                    return f;
+                }
+                case MagicLinksConst.Bool:
+                {
+                    var f = new Toggle();
+                    f.SetValueWithoutNotify(parsed is bool b && b);
+                    f.RegisterValueChangedCallback(e => UpdateDynamicVariableInitialValue(variable, MagicLinksInitialValue.Format(e.newValue)));
+                    return f;
+                }
+                case MagicLinksConst.Int:
+                {
+                    var f = new IntegerField();
+                    f.SetValueWithoutNotify(parsed is int i ? i : 0);
+                    f.RegisterValueChangedCallback(e => UpdateDynamicVariableInitialValue(variable, MagicLinksInitialValue.Format(e.newValue)));
+                    return f;
+                }
+                case MagicLinksConst.Float:
+                {
+                    var f = new FloatField();
+                    f.SetValueWithoutNotify(parsed is float fv ? fv : 0f);
+                    f.RegisterValueChangedCallback(e => UpdateDynamicVariableInitialValue(variable, MagicLinksInitialValue.Format(e.newValue)));
+                    return f;
+                }
+                case MagicLinksConst.Vector2:
+                {
+                    var f = new Vector2Field();
+                    f.SetValueWithoutNotify(parsed is Vector2 v2 ? v2 : Vector2.zero);
+                    f.RegisterValueChangedCallback(e => UpdateDynamicVariableInitialValue(variable, MagicLinksInitialValue.Format(e.newValue)));
+                    return f;
+                }
+                case MagicLinksConst.Vector3:
+                {
+                    var f = new Vector3Field();
+                    f.SetValueWithoutNotify(parsed is Vector3 v3 ? v3 : Vector3.zero);
+                    f.RegisterValueChangedCallback(e => UpdateDynamicVariableInitialValue(variable, MagicLinksInitialValue.Format(e.newValue)));
+                    return f;
+                }
+                case MagicLinksConst.Color:
+                {
+                    var f = new ColorField();
+                    f.SetValueWithoutNotify(parsed is Color c ? c : Color.white);
+                    f.RegisterValueChangedCallback(e => UpdateDynamicVariableInitialValue(variable, MagicLinksInitialValue.Format(e.newValue)));
+                    return f;
+                }
+            }
+
+            return null;
+        }
+
 
         public static void UpdateDynamicVariableInitialValue(DynamicVariable variable, string initialValue)
         {
             DynamicVariable variableToUpdate = JsonUtility.FromJson<DynamicVariable>(File.ReadAllText(variable.vPath));
             variableToUpdate.initialValue = initialValue;
+            // Keep the in-memory variable in sync so the inspector keeps its current value across rebuilds
+            variable.initialValue = initialValue;
             File.WriteAllText(variable.vPath, JsonUtility.ToJson(variableToUpdate, true));
 
-            //AssetDatabase.Refresh();
+            AssetDatabase.ImportAsset(variable.vPath);
         }
 
         public static void OnSingleVariableTypeChanged(DynamicVariable variable, string newType)

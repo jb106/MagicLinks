@@ -39,12 +39,50 @@ namespace MagicLinks
             rootVisualElement.Q<Toggle>().SetValueWithoutNotify(config.enableRuntimeUI);
 
             HookEvents();
+            SetupLeftPanelSplit();
             MagicLinksCustomTypes.UpdateTypes();
             MagicLinksCategories.UpdateCategories();
             MagicLinksInternalVar.UpdateVariablesUI();
 
             MagicLinksScriptsGenerator.GenerateMagicVariablesScript(true);
             MagicLinksScriptsGenerator.GenerateListenersScripts(true);
+        }
+
+        private void SetupLeftPanelSplit()
+        {
+            var splitView = rootVisualElement.Q<TwoPaneSplitView>(MagicLinksConst.MainSplitViewName);
+            var leftPanel = rootVisualElement.Q<VisualElement>(MagicLinksConst.LeftPanelName);
+            var collapseBtn = rootVisualElement.Q<Button>(MagicLinksConst.CollapseLeftPanelButton);
+            var expandBtn = rootVisualElement.Q<Button>(MagicLinksConst.ExpandLeftPanelButton);
+            if (splitView == null || leftPanel == null || collapseBtn == null || expandBtn == null) return;
+
+            float savedWidth = EditorPrefs.GetFloat(MagicLinksConst.LeftPanelWidthKey,
+                MagicLinksConst.LeftPanelDefaultWidth);
+            splitView.fixedPaneInitialDimension = savedWidth;
+
+            bool startCollapsed = EditorPrefs.GetBool(MagicLinksConst.LeftPanelCollapsedKey, false);
+            ApplyLeftPanelCollapsed(splitView, expandBtn, startCollapsed);
+
+            collapseBtn.clicked += () => ApplyLeftPanelCollapsed(splitView, expandBtn, true);
+            expandBtn.clicked += () => ApplyLeftPanelCollapsed(splitView, expandBtn, false);
+
+            // Persist width whenever the user drags the splitter (only when expanded)
+            leftPanel.RegisterCallback<GeometryChangedEvent>(_ =>
+            {
+                if (EditorPrefs.GetBool(MagicLinksConst.LeftPanelCollapsedKey, false)) return;
+                float w = leftPanel.resolvedStyle.width;
+                if (w > 50f && System.Math.Abs(EditorPrefs.GetFloat(MagicLinksConst.LeftPanelWidthKey, -1f) - w) > 0.5f)
+                    EditorPrefs.SetFloat(MagicLinksConst.LeftPanelWidthKey, w);
+            });
+        }
+
+        private static void ApplyLeftPanelCollapsed(TwoPaneSplitView splitView, Button expandBtn, bool collapsed)
+        {
+            if (collapsed) splitView.CollapseChild(0);
+            else splitView.UnCollapse();
+
+            expandBtn.style.display = collapsed ? DisplayStyle.Flex : DisplayStyle.None;
+            EditorPrefs.SetBool(MagicLinksConst.LeftPanelCollapsedKey, collapsed);
         }
 
         private void HookEvents()

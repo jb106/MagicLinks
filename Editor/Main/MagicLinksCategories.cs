@@ -14,8 +14,11 @@ namespace MagicLinks
 
         public static void CreateCategory()
         {
-            string newCategoryName = MagicLinkEditor.Instance.rootVisualElement
-                .Q<TextField>(MagicLinksConst.CreateCategoryNameTextFieldClass).value;
+            TextField nameField = MagicLinkEditor.Instance.rootVisualElement
+                .Q<TextField>(MagicLinksConst.CreateCategoryNameTextFieldClass);
+            string newCategoryName = nameField.value;
+
+            if (string.IsNullOrWhiteSpace(newCategoryName)) return;
 
             MagicLinksConfiguration config = MagicLinksUtilities.GetConfiguration();
 
@@ -23,6 +26,7 @@ namespace MagicLinks
 
             config.categories.Add(newCategoryName);
             EditorUtility.SetDirty(config);
+            nameField.SetValueWithoutNotify(string.Empty);
 
             UpdateCategories();
         }
