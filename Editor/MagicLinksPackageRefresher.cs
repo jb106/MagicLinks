@@ -41,9 +41,17 @@ namespace MagicLinks
 
         private static void RefreshScripts()
         {
-            MagicLinksScriptsGenerator.ClearListeners(true);
-            MagicLinksScriptsGenerator.GenerateMagicVariablesScript(false);
-            MagicLinksScriptsGenerator.GenerateListenersScripts();
+            AssetDatabase.StartAssetEditing();
+            try
+            {
+                MagicLinksScriptsGenerator.ClearListeners(true);
+                MagicLinksScriptsGenerator.GenerateMagicVariablesScript(false);
+                MagicLinksScriptsGenerator.GenerateListenersScripts();
+            }
+            finally
+            {
+                AssetDatabase.StopAssetEditing();
+            }
             AssetDatabase.Refresh();
         }
     }

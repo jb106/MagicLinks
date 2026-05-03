@@ -9,8 +9,15 @@ namespace MagicLinks
 {
     public static class MagicLinksUtilities
     {
+        private static MagicLinksConfiguration _cachedConfiguration;
+        private static string _cachedPackagePath;
+        private static Dictionary<string, string> _cachedBaseTypes;
+        private static readonly Dictionary<string, Texture2D> _iconCache = new Dictionary<string, Texture2D>();
+
         public static MagicLinksConfiguration GetConfiguration()
         {
+            if (_cachedConfiguration != null) return _cachedConfiguration;
+
             if (Directory.Exists(MagicLinksConst.ConfigurationPath) == false)
                 Directory.CreateDirectory(MagicLinksConst.ConfigurationPath);
 
@@ -18,13 +25,15 @@ namespace MagicLinks
 
             if (File.Exists(fullPath))
             {
-                return AssetDatabase.LoadAssetAtPath<MagicLinksConfiguration>(fullPath);
+                _cachedConfiguration = AssetDatabase.LoadAssetAtPath<MagicLinksConfiguration>(fullPath);
             }
             else
             {
                 AssetDatabase.CreateAsset(new MagicLinksConfiguration(), fullPath);
-                return AssetDatabase.LoadAssetAtPath<MagicLinksConfiguration>(fullPath);
+                _cachedConfiguration = AssetDatabase.LoadAssetAtPath<MagicLinksConfiguration>(fullPath);
             }
+
+            return _cachedConfiguration;
         }
 
         public static void CreateVariablesFolder()
@@ -61,12 +70,13 @@ namespace MagicLinks
 
         public static string GetPackagePath()
         {
+            if (_cachedPackagePath != null) return _cachedPackagePath;
+
             var assembly = System.Reflection.Assembly.GetExecutingAssembly();
             var info = UnityEditor.PackageManager.PackageInfo.FindForAssembly(assembly);
 
-            if (info == null) return string.Empty;
-
-            return info.assetPath;
+            _cachedPackagePath = info == null ? string.Empty : info.assetPath;
+            return _cachedPackagePath;
         }
 
         public static List<string> GetAllTypes()
@@ -96,54 +106,51 @@ namespace MagicLinks
 
         public static Dictionary<string, string> GetBaseTypes()
         {
-            Dictionary<string, string> baseTypes = new Dictionary<string, string>();
+            if (_cachedBaseTypes != null) return _cachedBaseTypes;
 
-            baseTypes.Add(MagicLinksConst.String, typeof(string).ToString());
-            baseTypes.Add(MagicLinksConst.Bool, typeof(bool).ToString());
-            baseTypes.Add(MagicLinksConst.Int, typeof(int).ToString());
-            baseTypes.Add(MagicLinksConst.Float, typeof(float).ToString());
-            baseTypes.Add(MagicLinksConst.Vector2, typeof(Vector2).ToString());
-            baseTypes.Add(MagicLinksConst.Vector3, typeof(Vector3).ToString());
-            baseTypes.Add(MagicLinksConst.GameObject, typeof(GameObject).ToString());
-            baseTypes.Add(MagicLinksConst.Transform, typeof(Transform).ToString());
-            baseTypes.Add(MagicLinksConst.Collider, typeof(Collider).ToString());
-            baseTypes.Add(MagicLinksConst.Color, typeof(Color).ToString());
+            _cachedBaseTypes = new Dictionary<string, string>
+            {
+                { MagicLinksConst.String, typeof(string).ToString() },
+                { MagicLinksConst.Bool, typeof(bool).ToString() },
+                { MagicLinksConst.Int, typeof(int).ToString() },
+                { MagicLinksConst.Float, typeof(float).ToString() },
+                { MagicLinksConst.Vector2, typeof(Vector2).ToString() },
+                { MagicLinksConst.Vector3, typeof(Vector3).ToString() },
+                { MagicLinksConst.GameObject, typeof(GameObject).ToString() },
+                { MagicLinksConst.Transform, typeof(Transform).ToString() },
+                { MagicLinksConst.Collider, typeof(Collider).ToString() },
+                { MagicLinksConst.Color, typeof(Color).ToString() },
+            };
 
-            return baseTypes;
+            return _cachedBaseTypes;
         }
 
         public static Texture2D GetVariableIcon(DynamicVariable variable)
         {
-            string spritesPath = MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.SpritesPath);
+            string spritesPath = GetPackageRelativePath(MagicLinksConst.SpritesPath);
 
-            string[] filesPath = Directory.GetFiles(spritesPath);
+            string fileName;
+            if (variable.magicType == 2)
+                fileName = "EventIcon_Void.png";
+            else if (variable.magicType == 1)
+                fileName = "EventIcon_" + variable.vLabelType + ".png";
+            else
+                fileName = "VariableIcon_" + variable.vLabelType + ".png";
 
-            foreach (string p in filesPath)
-            {
-                if (Path.GetExtension(p) != ".png") continue;
+            Texture2D icon = LoadIconCached(Path.Combine(spritesPath, fileName));
+            if (icon != null) return icon;
 
-                string baseName = string.Empty;
+            return LoadIconCached(Path.Combine(spritesPath, "VariableIcon_Custom.png"));
+        }
 
-                if (variable.magicType == 0)
-                {
-                    baseName = "VariableIcon_";
-                }
-                else if (variable.magicType == 1)
-                {
-                    baseName = "EventIcon_";
-                }
-                else if (variable.magicType == 2)
-                {
-                    if (Path.GetFileNameWithoutExtension(p) == "EventIcon_Void")
-                        return AssetDatabase.LoadAssetAtPath(p, typeof(Texture2D)) as Texture2D;
-                }
+        private static Texture2D LoadIconCached(string path)
+        {
+            string normalized = path.Replace("\\", "/");
+            if (_iconCache.TryGetValue(normalized, out var cached) && cached != null) return cached;
 
-                if (Path.GetFileNameWithoutExtension(p) == baseName + variable.vLabelType)
-                    return AssetDatabase.LoadAssetAtPath(p, typeof(Texture2D)) as Texture2D;
-            }
-
-            string customIconPath = Path.Combine(spritesPath, "VariableIcon_Custom.png");
-            return AssetDatabase.LoadAssetAtPath(customIconPath, typeof(Texture2D)) as Texture2D;
+            Texture2D icon = AssetDatabase.LoadAssetAtPath(normalized, typeof(Texture2D)) as Texture2D;
+            if (icon != null) _iconCache[normalized] = icon;
+            return icon;
         }
 
         public static string GetEventListenerName(string type)

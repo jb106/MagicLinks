@@ -35,7 +35,7 @@ namespace MagicLinks
             newVariable.isList = false;
 
             File.WriteAllText(newVariablePath, JsonUtility.ToJson(newVariable, true));
-            AssetDatabase.Refresh();
+            AssetDatabase.ImportAsset(newVariablePath);
 
             UpdateVariablesUI();
         }
@@ -86,18 +86,21 @@ namespace MagicLinks
 
             string currentCategorySelected = MagicLinkEditor.Instance.rootVisualElement
                 .Q<DropdownField>(MagicLinksConst.CategoriesDropdownClass).value;
-            
+
             MagicLinksConfiguration config = MagicLinksUtilities.GetConfiguration();
             config.typesNamesPairs.Clear();
-            
+
             //Sort variable by category
             Dictionary<string, int> categoryPriority = config.categories
                 .Select((category, index) => new { category, index })
                 .ToDictionary(x => x.category, x => x.index);
-            
+
             List<DynamicVariable> sortedVariables = existingVariables
                 .OrderBy(v => categoryPriority.ContainsKey(v.category) ? categoryPriority[v.category] : int.MinValue)
                 .ToList();
+
+            // Cache once instead of recomputing per variable
+            List<string> allTypes = MagicLinksUtilities.GetAllTypes();
 
             string lastCategory = string.Empty;
 
@@ -133,8 +136,6 @@ namespace MagicLinks
                 {
                     if (v.category != currentCategorySelected) continue;
                 }
-                
-                EditorUtility.SetDirty(config);
 
                 VisualElement newUIVariable = variableUXML.Instantiate();
 
@@ -148,7 +149,7 @@ namespace MagicLinks
                 }
                 else
                 {
-                    foreach (string t in MagicLinksUtilities.GetAllTypes())
+                    foreach (string t in allTypes)
                     {
                         field.choices.Add(t);
                     }
@@ -216,6 +217,8 @@ namespace MagicLinks
 
                 variablesContainer.Add(newUIVariable);
             }
+
+            EditorUtility.SetDirty(config);
         }
 
         public static void OnSingleVariableCategoryChanged(DynamicVariable variable, string newCategory)
@@ -224,7 +227,7 @@ namespace MagicLinks
             variableToUpdate.category = newCategory;
             File.WriteAllText(variable.vPath, JsonUtility.ToJson(variableToUpdate, true));
 
-            AssetDatabase.Refresh();
+            AssetDatabase.ImportAsset(variable.vPath);
             UpdateVariablesUI();
         }
 
@@ -234,7 +237,7 @@ namespace MagicLinks
             variableToUpdate.magicType = newMagicType;
             File.WriteAllText(variable.vPath, JsonUtility.ToJson(variableToUpdate, true));
 
-            AssetDatabase.Refresh();
+            AssetDatabase.ImportAsset(variable.vPath);
             UpdateVariablesUI();
         }
 
@@ -244,7 +247,7 @@ namespace MagicLinks
             variableToUpdate.isList = isList;
             File.WriteAllText(variable.vPath, JsonUtility.ToJson(variableToUpdate, true));
 
-            AssetDatabase.Refresh();
+            AssetDatabase.ImportAsset(variable.vPath);
             UpdateVariablesUI();
         }
 
@@ -292,8 +295,7 @@ namespace MagicLinks
 
         public static void OnDeleteSingleVariable(string path)
         {
-            File.Delete(path);
-            AssetDatabase.Refresh();
+            AssetDatabase.DeleteAsset(path);
             UpdateVariablesUI();
         }
     }

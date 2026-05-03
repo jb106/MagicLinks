@@ -43,9 +43,8 @@ namespace MagicLinks
             MagicLinksCategories.UpdateCategories();
             MagicLinksInternalVar.UpdateVariablesUI();
 
-            MagicLinksScriptsGenerator.ClearListeners(false);
             MagicLinksScriptsGenerator.GenerateMagicVariablesScript(true);
-            MagicLinksScriptsGenerator.GenerateListenersScripts();
+            MagicLinksScriptsGenerator.GenerateListenersScripts(true);
         }
 
         private void HookEvents()
@@ -74,9 +73,18 @@ namespace MagicLinks
             MagicLinksCategories.UpdateCategories();
             MagicLinksInternalVar.UpdateVariablesUI();
 
-            MagicLinksScriptsGenerator.ClearListeners(true);
-            MagicLinksScriptsGenerator.GenerateMagicVariablesScript(false);
-            MagicLinksScriptsGenerator.GenerateListenersScripts();
+            AssetDatabase.StartAssetEditing();
+            try
+            {
+                MagicLinksScriptsGenerator.ClearListeners(true);
+                MagicLinksScriptsGenerator.GenerateMagicVariablesScript(false);
+                MagicLinksScriptsGenerator.GenerateListenersScripts();
+            }
+            finally
+            {
+                AssetDatabase.StopAssetEditing();
+            }
+            AssetDatabase.Refresh();
         }
     }
 }

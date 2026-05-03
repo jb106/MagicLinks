@@ -43,7 +43,8 @@ namespace MagicLinks
                 AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(
                     MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.UXMLCustomTypeElement));
 
-            foreach (string customType in MagicLinksUtilities.GetConfiguration().customTypes)
+            MagicLinksConfiguration config = MagicLinksUtilities.GetConfiguration();
+            foreach (string customType in config.customTypes)
             {
                 VisualElement customTypeElement = customTypeUXML.Instantiate();
 
@@ -55,8 +56,6 @@ namespace MagicLinks
 
                 foldout.Add(customTypeElement);
             }
-
-            AssetDatabase.Refresh();
         }
 
         public static void OnCustomTypeElementDeleteButton(string customType)

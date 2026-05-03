@@ -81,7 +81,6 @@ namespace MagicLinks
             }
 
             MagicLinksInternalVar.UpdateVariablesUI();
-            AssetDatabase.Refresh();
         }
     }
 }
