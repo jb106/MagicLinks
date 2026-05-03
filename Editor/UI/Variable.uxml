@@ -6,12 +6,12 @@
             <engine:VisualElement name="Icon" class="singleVariableElement" style="background-image: url(&quot;project://database/Assets/MagicLinks/Editor/Sprites/EventIcon_Custom.png?fileID=2800000&amp;guid=c223369c0b50e4043bfe63f5fb559af7&amp;type=3#EventIcon_Custom&quot;); width: 20px; height: 20px; flex-shrink: 0; flex-grow: 0;" />
             <engine:Label text="Variable name" name="Name" selectable="true" class="singleVariableElement variableName" style="-unity-font-style: bold; flex-grow: 1; flex-shrink: 1; min-width: 40px;" />
             <engine:DropdownField name="Type" class="singleVariableElement" style="flex-grow: 0; flex-shrink: 1; min-width: 70px; max-width: 160px;" />
+            <engine:Label text="List" name="IsListLabel" class="singleVariableElement" tooltip="Is List" style="flex-shrink: 0; flex-grow: 0; opacity: 0.7;" />
+            <engine:Toggle name="IsList" class="singleVariableElement" tooltip="Is List" style="flex-shrink: 0; flex-grow: 0;" />
             <engine:Button text="x" name="DeleteButton" class="singleVariableElement" style="-unity-font-style: bold; background-color: rgb(188, 71, 71); width: 24px; flex-shrink: 0; flex-grow: 0;" />
         </engine:VisualElement>
         <engine:VisualElement name="Settings" style="flex-direction: row; flex-wrap: wrap; align-items: center; padding-left: 30px; padding-right: 6px; padding-bottom: 6px; padding-top: 2px; display: none;">
             <engine:DropdownField name="MagicType" index="0" class="singleVariableElement" style="flex-grow: 1; flex-shrink: 1; min-width: 100px; max-width: 200px;" />
-            <engine:Label text="Is List" name="IsListLabel" class="singleVariableElement" />
-            <engine:Toggle name="IsList" class="singleVariableElement" style="flex-shrink: 0;" />
             <engine:DropdownField name="Category" choices="Player,Enemy" index="0" class="singleVariableElement" style="flex-grow: 1; flex-shrink: 1; min-width: 100px; max-width: 200px;" />
             <engine:VisualElement name="InitialValueContainer" class="singleVariableElement" style="flex-grow: 2; flex-shrink: 1; flex-direction: row; align-items: center; min-width: 120px;" />
         </engine:VisualElement>

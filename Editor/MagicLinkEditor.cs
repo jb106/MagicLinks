@@ -88,12 +88,42 @@ namespace MagicLinks
         private void HookEvents()
         {
             rootVisualElement.Q<Toggle>(MagicLinksConst.EnableRuntimeUIToggle).RegisterValueChangedCallback(evt => ChangeEnableRuntimeUI(evt.newValue));
-            
+
             rootVisualElement.Q<Button>(MagicLinksConst.CreateTypeButtonClass).clicked += MagicLinksCustomTypes.CreateType;
             rootVisualElement.Q<Button>(MagicLinksConst.CreateVariableButtonClass).clicked += MagicLinksInternalVar.CreateVariable;
             rootVisualElement.Q<Button>(MagicLinksConst.RefreshScriptsButton).clicked += RefreshScripts;
             rootVisualElement.Q<Button>(MagicLinksConst.CreateCategoryButtonClass).clicked += MagicLinksCategories.CreateCategory;
             rootVisualElement.Q<DropdownField>(MagicLinksConst.CategoriesDropdownClass).RegisterValueChangedCallback((s) => { MagicLinksCategories.OnCategorySelected(s.newValue); });
+
+            HookEnterShortcut(rootVisualElement.Q<TextField>(MagicLinksConst.VariableNameTextFieldClass), MagicLinksInternalVar.CreateVariable);
+            HookEnterShortcut(rootVisualElement.Q<TextField>(MagicLinksConst.TypeTextFieldClass), MagicLinksCustomTypes.CreateType);
+            HookEnterShortcut(rootVisualElement.Q<TextField>(MagicLinksConst.CreateCategoryNameTextFieldClass), MagicLinksCategories.CreateCategory);
+
+            rootVisualElement.Q<TextField>(MagicLinksConst.VariablesSearchField)
+                ?.RegisterValueChangedCallback(_ => MagicLinksInternalVar.UpdateVariablesUI());
+            rootVisualElement.Q<DropdownField>(MagicLinksConst.VariablesSortDropdown)
+                ?.RegisterValueChangedCallback(evt =>
+                {
+                    EditorPrefs.SetString(MagicLinksConst.VariablesSortKey, evt.newValue);
+                    MagicLinksInternalVar.UpdateVariablesUI();
+                });
+            rootVisualElement.Q<DropdownField>(MagicLinksConst.VariablesMagicTypeFilterDropdown)
+                ?.RegisterValueChangedCallback(evt =>
+                {
+                    EditorPrefs.SetString(MagicLinksConst.VariablesMagicTypeFilterKey, evt.newValue);
+                    MagicLinksInternalVar.UpdateVariablesUI();
+                });
+        }
+
+        private static void HookEnterShortcut(TextField field, System.Action onEnter)
+        {
+            if (field == null || onEnter == null) return;
+            field.RegisterCallback<KeyDownEvent>(evt =>
+            {
+                if (evt.keyCode != KeyCode.Return && evt.keyCode != KeyCode.KeypadEnter) return;
+                onEnter();
+                evt.StopPropagation();
+            });
         }
 
         private void ChangeEnableRuntimeUI(bool enabled)

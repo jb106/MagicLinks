@@ -36,6 +36,11 @@
                         <engine:Button text="Create Magic Element" name="CreateVariableButton" class="ConfigurationElement" style="flex-grow: 0;" />
                     </engine:VisualElement>
                     <engine:DropdownField label="Category Filter" choices="None,Player,Enemy" index="0" name="CategoriesDropdown" class="BasicListElement" style="padding-top: 10px;" />
+                    <engine:VisualElement name="VariablesToolbar" style="flex-direction: row; flex-wrap: wrap; align-items: center; padding-left: 6px; padding-right: 6px; padding-top: 4px; padding-bottom: 4px;">
+                        <engine:TextField placeholder-text="Search by name..." name="VariablesSearch" style="flex-grow: 2; flex-shrink: 1; min-width: 120px; margin-right: 4px;" />
+                        <engine:DropdownField name="VariablesSort" choices="Default,Name (A-Z),Name (Z-A),Newest,Oldest" index="0" tooltip="Sort variables" style="flex-grow: 1; flex-shrink: 1; min-width: 100px; max-width: 160px; margin-right: 4px;" />
+                        <engine:DropdownField name="VariablesMagicTypeFilter" choices="All,Variable,Event,EventVoid" index="0" tooltip="Filter by magic type" style="flex-grow: 1; flex-shrink: 1; min-width: 100px; max-width: 140px;" />
+                    </engine:VisualElement>
                     <engine:VisualElement name="VariablesContainer" style="flex-grow: 1;">
                         <engine:Instance template="VariableHeader" />
                         <engine:Instance template="Variable" />

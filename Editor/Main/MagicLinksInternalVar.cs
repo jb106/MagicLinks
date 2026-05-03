@@ -88,47 +88,92 @@ namespace MagicLinks
             
             variablesContainer.Clear();
 
-            string currentCategorySelected = MagicLinkEditor.Instance.rootVisualElement
-                .Q<DropdownField>(MagicLinksConst.CategoriesDropdownClass).value;
+            VisualElement root = MagicLinkEditor.Instance.rootVisualElement;
+
+            string currentCategorySelected = root.Q<DropdownField>(MagicLinksConst.CategoriesDropdownClass).value;
+
+            // Restore persisted toolbar values on first build, then read current values
+            DropdownField sortField = root.Q<DropdownField>(MagicLinksConst.VariablesSortDropdown);
+            DropdownField magicTypeField = root.Q<DropdownField>(MagicLinksConst.VariablesMagicTypeFilterDropdown);
+            TextField searchField = root.Q<TextField>(MagicLinksConst.VariablesSearchField);
+
+            string sortMode = sortField != null
+                ? RestoreDropdownValue(sortField, MagicLinksConst.VariablesSortKey, MagicLinksConst.SortDefault)
+                : MagicLinksConst.SortDefault;
+            string magicTypeFilter = magicTypeField != null
+                ? RestoreDropdownValue(magicTypeField, MagicLinksConst.VariablesMagicTypeFilterKey, MagicLinksConst.MagicTypeFilterAll)
+                : MagicLinksConst.MagicTypeFilterAll;
+            string search = searchField != null ? (searchField.value ?? string.Empty).Trim() : string.Empty;
 
             MagicLinksConfiguration config = MagicLinksUtilities.GetConfiguration();
             config.typesNamesPairs.Clear();
 
-            //Sort variable by category
+            // Apply name search + magic type filter
+            IEnumerable<DynamicVariable> filtered = existingVariables;
+            if (!string.IsNullOrEmpty(search))
+            {
+                filtered = filtered.Where(v => !string.IsNullOrEmpty(v.vName)
+                    && v.vName.IndexOf(search, System.StringComparison.OrdinalIgnoreCase) >= 0);
+            }
+            if (magicTypeFilter != MagicLinksConst.MagicTypeFilterAll)
+            {
+                int wantedMagicType = magicTypeFilter switch
+                {
+                    MagicLinksConst.MagicTypeEvent => 1,
+                    MagicLinksConst.MagicTypeEventVoid => 2,
+                    _ => 0,
+                };
+                filtered = filtered.Where(v => v.magicType == wantedMagicType);
+            }
+
+            //Sort
             Dictionary<string, int> categoryPriority = config.categories
                 .Select((category, index) => new { category, index })
                 .ToDictionary(x => x.category, x => x.index);
 
-            List<DynamicVariable> sortedVariables = existingVariables
-                .OrderBy(v => categoryPriority.ContainsKey(v.category) ? categoryPriority[v.category] : int.MinValue)
-                .ToList();
+            bool groupByCategory = sortMode == MagicLinksConst.SortDefault;
+            List<DynamicVariable> sortedVariables = (sortMode switch
+            {
+                MagicLinksConst.SortNameAsc => filtered.OrderBy(v => v.vName, System.StringComparer.OrdinalIgnoreCase),
+                MagicLinksConst.SortNameDesc => filtered.OrderByDescending(v => v.vName, System.StringComparer.OrdinalIgnoreCase),
+                MagicLinksConst.SortNewest => filtered.OrderByDescending(v => SafeGetCreationTime(v.vPath)),
+                MagicLinksConst.SortOldest => filtered.OrderBy(v => SafeGetCreationTime(v.vPath)),
+                _ => filtered.OrderBy(v => categoryPriority.ContainsKey(v.category) ? categoryPriority[v.category] : int.MinValue),
+            }).ToList();
 
             // Cache once instead of recomputing per variable
             List<string> allTypes = MagicLinksUtilities.GetAllTypes();
 
-            string lastCategory = string.Empty;
+            bool showCategoryHeaders = groupByCategory && currentCategorySelected == MagicLinksConst.CategoryNone;
 
-            if (currentCategorySelected == MagicLinksConst.CategoryNone)
+            // Pre-compute which variables actually pass every filter so headers
+            // only show categories that have at least one visible variable.
+            HashSet<string> visibleCategories = null;
+            if (showCategoryHeaders)
             {
-                VisualElement newHeader = variableHeader.Instantiate();
-                newHeader.Q<Label>("HeaderText").text = MagicLinksConst.CategoryNone;
-                
-                variablesContainer.Add(newHeader);
+                visibleCategories = new HashSet<string>();
+                foreach (DynamicVariable v in sortedVariables)
+                {
+                    visibleCategories.Add(string.IsNullOrEmpty(v.category) ? MagicLinksConst.CategoryNone : v.category);
+                }
             }
-            
+
+            string lastCategory = null;
+
             foreach (DynamicVariable v in sortedVariables)
             {
-                if (v.category != lastCategory)
+                string categoryKey = string.IsNullOrEmpty(v.category) ? MagicLinksConst.CategoryNone : v.category;
+                if (categoryKey != lastCategory)
                 {
-                    if (v.category != MagicLinksConst.CategoryNone && currentCategorySelected == MagicLinksConst.CategoryNone)
+                    if (showCategoryHeaders && visibleCategories.Contains(categoryKey))
                     {
                         VisualElement newHeader = variableHeader.Instantiate();
-                        newHeader.Q<Label>("HeaderText").text = v.category;
+                        newHeader.Q<Label>("HeaderText").text = categoryKey;
 
                         variablesContainer.Add(newHeader);
                     }
 
-                    lastCategory = v.category;
+                    lastCategory = categoryKey;
                 }
                 
                 string typeName = v.vLabelType;
@@ -272,6 +317,27 @@ namespace MagicLinks
             field.style.flexGrow = 1;
             field.style.maxWidth = 240;
             container.Add(field);
+        }
+
+        // Dropdowns lose their selection when the UI rebuilds; restore from EditorPrefs the first time
+        // we see them empty, otherwise just trust their current value.
+        private static string RestoreDropdownValue(DropdownField field, string prefsKey, string fallback)
+        {
+            if (string.IsNullOrEmpty(field.value))
+            {
+                string stored = EditorPrefs.GetString(prefsKey, fallback);
+                if (field.choices != null && field.choices.Contains(stored))
+                    field.SetValueWithoutNotify(stored);
+                else
+                    field.SetValueWithoutNotify(fallback);
+            }
+            return field.value;
+        }
+
+        private static System.DateTime SafeGetCreationTime(string path)
+        {
+            try { return File.GetCreationTimeUtc(path); }
+            catch { return System.DateTime.MinValue; }
         }
 
         private static void SetupVariableFoldout(DynamicVariable variable, VisualElement variableUI)

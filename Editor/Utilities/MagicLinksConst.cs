@@ -120,6 +120,21 @@ namespace MagicLinks
         public const string LeftPanelWidthKey = "MagicLinks_LeftPanelWidth";
         public const float LeftPanelDefaultWidth = 240f;
 
+        public const string VariablesSearchField = "VariablesSearch";
+        public const string VariablesSortDropdown = "VariablesSort";
+        public const string VariablesMagicTypeFilterDropdown = "VariablesMagicTypeFilter";
+
+        public const string VariablesSortKey = "MagicLinks_VariablesSort";
+        public const string VariablesMagicTypeFilterKey = "MagicLinks_VariablesMagicTypeFilter";
+
+        public const string SortDefault = "Default";
+        public const string SortNameAsc = "Name (A-Z)";
+        public const string SortNameDesc = "Name (Z-A)";
+        public const string SortNewest = "Newest";
+        public const string SortOldest = "Oldest";
+
+        public const string MagicTypeFilterAll = "All";
+
         public const string CustomTypesFoldout = "CustomTypesFoldout";
         public const string CustomTypeElementName = "CustomTypeName";
         public const string CustomTypeElementDeleteButton = "DeleteCustomType";
