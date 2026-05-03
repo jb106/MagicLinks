@@ -23,7 +23,10 @@ namespace MagicLinks
         private UIDocument _runtimeUI;
         private VisualElement _runtimeContainer;
         private DropdownField _categoryDropdown;
-        
+        private DropdownField _sortDropdown;
+        private DropdownField _magicTypeDropdown;
+        private TextField _searchField;
+
         private string _currentCategory;
         private Dictionary<string, List<VisualElement>> _instantiatedLinks = new Dictionary<string, List<VisualElement>>();
         
@@ -38,8 +41,9 @@ namespace MagicLinks
             public int magicType;
             public bool isList;
             public string category;
+            public string path;
 
-            public VariableEntry(string key, string type, string labelType, string initialValueRaw, int magicType, bool isList, string category)
+            public VariableEntry(string key, string type, string labelType, string initialValueRaw, int magicType, bool isList, string category, string path)
             {
                 this.key = key;
                 this.type = type;
@@ -48,6 +52,7 @@ namespace MagicLinks
                 this.magicType = magicType;
                 this.isList = isList;
                 this.category = category;
+                this.path = path;
             }
         }
 
@@ -96,30 +101,38 @@ namespace MagicLinks
                     container.style.scale = new Scale(new Vector2(scale, scale));
                 });
 
-                // ------- CATEGORIES
+                // ------- CATEGORY filter
 
                 _categoryDropdown = root.Q<DropdownField>("Category");
                 _categoryDropdown.choices.Clear();
-
                 _categoryDropdown.choices.Add(MagicLinksConst.CategoryNone);
-
                 foreach (var cName in config.categories)
-                {
                     _categoryDropdown.choices.Add(cName);
+                _categoryDropdown.value = _categoryDropdown.choices[0];
+                _categoryDropdown.RegisterValueChangedCallback(_ => RebuildRuntimeList());
+
+                // ------- SORT
+                _sortDropdown = root.Q<DropdownField>("Sort");
+                if (_sortDropdown != null)
+                {
+                    if (string.IsNullOrEmpty(_sortDropdown.value)) _sortDropdown.value = MagicLinksConst.SortDefault;
+                    _sortDropdown.RegisterValueChangedCallback(_ => RebuildRuntimeList());
                 }
 
-                _categoryDropdown.value = _categoryDropdown.choices[0];
-                _categoryDropdown.RegisterValueChangedCallback(evt =>
+                // ------- MAGIC TYPE filter
+                _magicTypeDropdown = root.Q<DropdownField>("MagicTypeFilter");
+                if (_magicTypeDropdown != null)
                 {
-                    foreach (var pair in _instantiatedLinks)
-                    {
-                        foreach (var vElement in pair.Value)
-                        {
-                            bool isVisible = evt.newValue == MagicLinksConst.CategoryNone || evt.newValue == pair.Key;
-                            vElement.style.display = isVisible ? DisplayStyle.Flex : DisplayStyle.None;
-                        }
-                    }
-                });
+                    if (string.IsNullOrEmpty(_magicTypeDropdown.value)) _magicTypeDropdown.value = MagicLinksConst.MagicTypeFilterAll;
+                    _magicTypeDropdown.RegisterValueChangedCallback(_ => RebuildRuntimeList());
+                }
+
+                // ------- SEARCH
+                _searchField = root.Q<TextField>("Search");
+                if (_searchField != null)
+                {
+                    _searchField.RegisterValueChangedCallback(_ => RebuildRuntimeList());
+                }
             }
             //ENDUSINGEDITOR
             
@@ -131,7 +144,7 @@ namespace MagicLinks
             _cachedExistingVariables = GetExistingVariables();
             foreach (var v in _cachedExistingVariables)
             {
-                initialVariables.Add(new VariableEntry(v.vName, v.vLabelType.ToUpper(), v.vLabelType, v.initialValue, v.magicType, v.isList, v.category));
+                initialVariables.Add(new VariableEntry(v.vName, v.vLabelType.ToUpper(), v.vLabelType, v.initialValue, v.magicType, v.isList, v.category, v.vPath));
             }
 
             // Feed the variables
@@ -160,10 +173,9 @@ namespace MagicLinks
             //STARTUSINGEDITOR
             if (config.enableRuntimeUI)
             {
-                InstantiateRuntimeVariables();
+                PreloadRuntimeVTAs();
+                RebuildRuntimeList();
             }
-            
-            MagicLinksUtilities.DisableFocusRecursive(_runtimeContainer);
             //ENDUSINGEDITOR
         }
         
@@ -258,135 +270,336 @@ namespace MagicLinks
         private VisualTreeAsset _runtimeLinkVTA;
         private readonly Dictionary<string, VisualTreeAsset> _runtimeFieldVTACache = new Dictionary<string, VisualTreeAsset>();
 
-        private void InstantiateRuntimeVariables()
+        private static readonly HashSet<string> _runtimeBaseTypes = new HashSet<string>
         {
-            // Pre-load VTAs once instead of per-link
+            MagicLinksConst.String, MagicLinksConst.Bool, MagicLinksConst.Int,
+            MagicLinksConst.Float, MagicLinksConst.Vector2, MagicLinksConst.Vector3,
+        };
+
+        private void PreloadRuntimeVTAs()
+        {
             _runtimeHeaderVTA = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(
                 MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.UXMLRuntimeLinkHeaderPath));
             _runtimeLinkVTA = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(
                 MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.UXMLRuntimeLinkItemPath));
+        }
 
-            List<(string key, object variable, string type)> mergedList = new();
+        private void RebuildRuntimeList()
+        {
+            if (_runtimeContainer == null) return;
 
-            void MergeVariables<T>(Dictionary<string, MagicVariableObservable<T>> dict, string typeName)
+            _runtimeContainer.Clear();
+            _instantiatedLinks.Clear();
+            _currentCategory = null;
+
+            // Read filter/sort values
+            string search = (_searchField != null ? _searchField.value : string.Empty)?.Trim() ?? string.Empty;
+            string sort = _sortDropdown != null && !string.IsNullOrEmpty(_sortDropdown.value)
+                ? _sortDropdown.value
+                : MagicLinksConst.SortDefault;
+            string magicTypeFilter = _magicTypeDropdown != null && !string.IsNullOrEmpty(_magicTypeDropdown.value)
+                ? _magicTypeDropdown.value
+                : MagicLinksConst.MagicTypeFilterAll;
+            string categoryFilter = _categoryDropdown != null && !string.IsNullOrEmpty(_categoryDropdown.value)
+                ? _categoryDropdown.value
+                : MagicLinksConst.CategoryNone;
+
+            // Filter
+            IEnumerable<VariableEntry> filtered = initialVariables;
+            filtered = filtered.Where(e =>
+                !e.isList &&
+                (e.magicType == 2 || _runtimeBaseTypes.Contains(e.labelType)));
+
+            if (!string.IsNullOrEmpty(search))
+                filtered = filtered.Where(e => !string.IsNullOrEmpty(e.key)
+                    && e.key.IndexOf(search, System.StringComparison.OrdinalIgnoreCase) >= 0);
+
+            if (magicTypeFilter != MagicLinksConst.MagicTypeFilterAll)
             {
-                foreach (var pair in dict)
+                int wantedMagicType = magicTypeFilter switch
                 {
-                    mergedList.Add((pair.Key, pair.Value, typeName));
+                    MagicLinksConst.MagicTypeEvent => 1,
+                    MagicLinksConst.MagicTypeEventVoid => 2,
+                    _ => 0,
+                };
+                filtered = filtered.Where(e => e.magicType == wantedMagicType);
+            }
+
+            if (categoryFilter != MagicLinksConst.CategoryNone)
+                filtered = filtered.Where(e => e.category == categoryFilter);
+
+            // Sort
+            List<VariableEntry> sorted = (sort switch
+            {
+                MagicLinksConst.SortNameAsc => filtered.OrderBy(e => e.key, System.StringComparer.OrdinalIgnoreCase),
+                MagicLinksConst.SortNameDesc => filtered.OrderByDescending(e => e.key, System.StringComparer.OrdinalIgnoreCase),
+                MagicLinksConst.SortNewest => filtered.OrderByDescending(e => SafeGetCreationTime(e.path)),
+                MagicLinksConst.SortOldest => filtered.OrderBy(e => SafeGetCreationTime(e.path)),
+                _ => filtered.OrderBy(e => string.IsNullOrEmpty(e.category) ? MagicLinksConst.CategoryNone : e.category, System.StringComparer.OrdinalIgnoreCase),
+            }).ToList();
+
+            // Lazy category headers — only when sort=Default and no category filter active.
+            bool showCategoryHeaders = sort == MagicLinksConst.SortDefault
+                                       && categoryFilter == MagicLinksConst.CategoryNone;
+            HashSet<string> visibleCategories = null;
+            if (showCategoryHeaders)
+            {
+                visibleCategories = new HashSet<string>();
+                foreach (var e in sorted)
+                    visibleCategories.Add(string.IsNullOrEmpty(e.category) ? MagicLinksConst.CategoryNone : e.category);
+            }
+
+            string lastCategory = null;
+            foreach (var entry in sorted)
+            {
+                string categoryKey = string.IsNullOrEmpty(entry.category) ? MagicLinksConst.CategoryNone : entry.category;
+                if (showCategoryHeaders && categoryKey != lastCategory && visibleCategories.Contains(categoryKey))
+                {
+                    AddCategoryHeader(categoryKey);
+                    lastCategory = categoryKey;
                 }
-            }
-
-            /*
-            MergeVariables(STRING, MagicLinksConst.String);
-            MergeVariables(BOOL, MagicLinksConst.Bool);
-            MergeVariables(INT, MagicLinksConst.Int);
-            MergeVariables(FLOAT, MagicLinksConst.Float);
-            MergeVariables(VECTOR2, MagicLinksConst.Vector2);
-            MergeVariables(VECTOR3, MagicLinksConst.Vector3);
-            */
-            
-            Dictionary<string, string> nameToCategory = new();
-            // Reuse the list already loaded in Awake instead of re-reading from Resources
-            var sourceVars = _cachedExistingVariables ?? GetExistingVariables();
-            foreach (var v in sourceVars)
-            {
-                nameToCategory[v.vName] = v.category;
-            }
-
-            foreach (var item in mergedList.OrderBy(x => nameToCategory.TryGetValue(x.key, out var cat) ? cat : ""))
-            {
-                string category = nameToCategory.TryGetValue(item.key, out var c) ? c : "";
-                
-                switch (item.type)
+                else if (!showCategoryHeaders)
                 {
-                    case MagicLinksConst.String:
-                        AddLinkToRuntimeUI(new KeyValuePair<string, MagicVariableObservable<string>>(item.key, (MagicVariableObservable<string>)item.variable), item.type, category);
-                        break;
-                    case MagicLinksConst.Bool:
-                        AddLinkToRuntimeUI(new KeyValuePair<string, MagicVariableObservable<bool>>(item.key, (MagicVariableObservable<bool>)item.variable), item.type, category);
-                        break;
-                    case MagicLinksConst.Int:
-                        AddLinkToRuntimeUI(new KeyValuePair<string, MagicVariableObservable<int>>(item.key, (MagicVariableObservable<int>)item.variable), item.type, category);
-                        break;
-                    case MagicLinksConst.Float:
-                        AddLinkToRuntimeUI(new KeyValuePair<string, MagicVariableObservable<float>>(item.key, (MagicVariableObservable<float>)item.variable), item.type, category);
-                        break;
-                    case MagicLinksConst.Vector2:
-                        AddLinkToRuntimeUI(new KeyValuePair<string, MagicVariableObservable<Vector2>>(item.key, (MagicVariableObservable<Vector2>)item.variable), item.type, category);
-                        break;
-                    case MagicLinksConst.Vector3:
-                        AddLinkToRuntimeUI(new KeyValuePair<string, MagicVariableObservable<Vector3>>(item.key, (MagicVariableObservable<Vector3>)item.variable), item.type, category);
-                        break;
+                    lastCategory = categoryKey;
+                }
+
+                switch (entry.magicType)
+                {
+                    case 0: DispatchVariable(entry, categoryKey); break;
+                    case 1: DispatchEvent(entry, categoryKey); break;
+                    case 2: DispatchVoidEvent(entry, categoryKey); break;
                 }
             }
         }
-        
-        private void AddLinkToRuntimeUI<T>(KeyValuePair<string, MagicVariableObservable<T>> pair, string t, string category)
+
+        private static System.DateTime SafeGetCreationTime(string path)
         {
+            try { return string.IsNullOrEmpty(path) ? System.DateTime.MinValue : System.IO.File.GetCreationTimeUtc(path); }
+            catch { return System.DateTime.MinValue; }
+        }
 
-            if (category != _currentCategory)
+        private void AddCategoryHeader(string category)
+        {
+            VisualElement newHeader = _runtimeHeaderVTA.Instantiate();
+            newHeader.Q<Label>("HeaderName").text = category;
+            _runtimeContainer.Add(newHeader);
+            AddInstantiatedToList(category, newHeader);
+            _currentCategory = category;
+        }
+
+        private object ResolveObservable(VariableEntry entry)
+        {
+            string dictName = GetDictionaryName(entry);
+            var dictField = GetCachedDictField(dictName);
+            if (dictField == null) return null;
+            var dict = dictField.GetValue(this);
+            if (dict == null) return null;
+
+            var dictType = dict.GetType();
+            if (!_tryGetValueCache.TryGetValue(dictType, out var tryGet))
             {
-                if (category != string.Empty)
-                {
-                    VisualElement newHeader = _runtimeHeaderVTA.Instantiate();
-                    newHeader.Q<Label>("HeaderName").text = category;
-                    _runtimeContainer.Add(newHeader);
-
-                    AddInstantiatedToList(category, newHeader);
-                }
-
-                _currentCategory = category;
+                tryGet = dictType.GetMethod("TryGetValue");
+                _tryGetValueCache[dictType] = tryGet;
             }
+            object[] args = new object[] { entry.key, null };
+            if (!(bool)tryGet.Invoke(dict, args)) return null;
+            return args[1];
+        }
 
-            VisualElement newElement = _runtimeLinkVTA.Instantiate();
-            Label labelTitle = newElement.Q<Label>("LinkName");
-            labelTitle.text = pair.Key;
+        private void DispatchVariable(VariableEntry entry, string category)
+        {
+            object obs = ResolveObservable(entry);
+            if (obs == null) return;
 
-            if (!_runtimeFieldVTACache.TryGetValue(t, out var field))
-            {
-                field = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(
-                    MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.GetRuntimeField(t)));
-                _runtimeFieldVTACache[t] = field;
-            }
-            VisualElement newField = field.Instantiate();
-            newField.style.flexGrow = 1;
-
-            void BindField<TField, TValue>(string query, Action<TField, TValue> setValue, Action<TField, EventCallback<ChangeEvent<TValue>>> bindCallback)
-                where TField : VisualElement
-            {
-                var fieldElement = newField.Q<TField>(query);
-                MagicVariableObservable<TValue> variable = pair.Value as MagicVariableObservable<TValue>;
-                variable.OnValueChanged += v => setValue(fieldElement, v);
-                setValue(fieldElement, variable.Value);
-                bindCallback(fieldElement, evt => variable.Value = evt.newValue);
-            }
-
-            switch (t)
+            switch (entry.labelType)
             {
                 case MagicLinksConst.String:
-                    BindField<TextField, string>("Field", (f, v) => f.SetValueWithoutNotify(v), (f, cb) => f.RegisterValueChangedCallback(cb));
-                    break;
+                    AddVariableLinkRuntime(entry.key, (MagicVariableObservable<string>)obs, entry.labelType, category); break;
                 case MagicLinksConst.Bool:
-                    BindField<Toggle, bool>("Field", (f, v) => f.SetValueWithoutNotify(v), (f, cb) => f.RegisterValueChangedCallback(cb));
-                    break;
+                    AddVariableLinkRuntime(entry.key, (MagicVariableObservable<bool>)obs, entry.labelType, category); break;
                 case MagicLinksConst.Int:
-                    BindField<IntegerField, int>("Field", (f, v) => f.SetValueWithoutNotify(v), (f, cb) => f.RegisterValueChangedCallback(cb));
-                    break;
+                    AddVariableLinkRuntime(entry.key, (MagicVariableObservable<int>)obs, entry.labelType, category); break;
                 case MagicLinksConst.Float:
-                    BindField<FloatField, float>("Field", (f, v) => f.SetValueWithoutNotify(v), (f, cb) => f.RegisterValueChangedCallback(cb));
-                    break;
+                    AddVariableLinkRuntime(entry.key, (MagicVariableObservable<float>)obs, entry.labelType, category); break;
                 case MagicLinksConst.Vector2:
-                    BindField<InlineVector2Field, Vector2>("Field", (f, v) => f.SetValueWithoutNotify(v), (f, cb) => f.RegisterCallback(cb));
-                    break;
+                    AddVariableLinkRuntime(entry.key, (MagicVariableObservable<Vector2>)obs, entry.labelType, category); break;
                 case MagicLinksConst.Vector3:
-                    BindField<InlineVector3Field, Vector3>("Field", (f, v) => f.SetValueWithoutNotify(v), (f, cb) => f.RegisterCallback(cb));
-                    break;
+                    AddVariableLinkRuntime(entry.key, (MagicVariableObservable<Vector3>)obs, entry.labelType, category); break;
             }
+        }
+
+        private void DispatchEvent(VariableEntry entry, string category)
+        {
+            object obs = ResolveObservable(entry);
+            if (obs == null) return;
+
+            switch (entry.labelType)
+            {
+                case MagicLinksConst.String:
+                    AddEventLinkRuntime(entry.key, (MagicEventObservable<string>)obs, entry.labelType, category); break;
+                case MagicLinksConst.Bool:
+                    AddEventLinkRuntime(entry.key, (MagicEventObservable<bool>)obs, entry.labelType, category); break;
+                case MagicLinksConst.Int:
+                    AddEventLinkRuntime(entry.key, (MagicEventObservable<int>)obs, entry.labelType, category); break;
+                case MagicLinksConst.Float:
+                    AddEventLinkRuntime(entry.key, (MagicEventObservable<float>)obs, entry.labelType, category); break;
+                case MagicLinksConst.Vector2:
+                    AddEventLinkRuntime(entry.key, (MagicEventObservable<Vector2>)obs, entry.labelType, category); break;
+                case MagicLinksConst.Vector3:
+                    AddEventLinkRuntime(entry.key, (MagicEventObservable<Vector3>)obs, entry.labelType, category); break;
+            }
+        }
+
+        private void DispatchVoidEvent(VariableEntry entry, string category)
+        {
+            // VOID dict is generated; resolve via reflection to keep the template compiling.
+            var dictField = GetCachedDictField("VOID");
+            if (dictField == null) return;
+            var dict = dictField.GetValue(this);
+            if (dict == null) return;
+
+            var dictType = dict.GetType();
+            if (!_tryGetValueCache.TryGetValue(dictType, out var tryGet))
+            {
+                tryGet = dictType.GetMethod("TryGetValue");
+                _tryGetValueCache[dictType] = tryGet;
+            }
+            object[] args = new object[] { entry.key, null };
+            if (!(bool)tryGet.Invoke(dict, args)) return;
+
+            AddVoidEventLinkRuntime(entry.key, (MagicEventVoidObservable)args[1], category);
+        }
+
+        private VisualElement BuildFieldVisual(string typeLabel)
+        {
+            if (!_runtimeFieldVTACache.TryGetValue(typeLabel, out var fieldVTA))
+            {
+                fieldVTA = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(
+                    MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.GetRuntimeField(typeLabel)));
+                _runtimeFieldVTACache[typeLabel] = fieldVTA;
+            }
+            VisualElement newField = fieldVTA.Instantiate();
+            newField.style.flexGrow = 1;
+            return newField;
+        }
+
+        private void AddVariableLinkRuntime<T>(string key, MagicVariableObservable<T> variable, string typeLabel, string category)
+        {
+            VisualElement newElement = _runtimeLinkVTA.Instantiate();
+            newElement.Q<Label>("LinkName").text = key;
+
+            VisualElement newField = BuildFieldVisual(typeLabel);
+            BindVariableField(newField, variable, typeLabel);
 
             newElement.Q<VisualElement>("RuntimeLinkItem").Add(newField);
             _runtimeContainer.Add(newElement);
-            
             AddInstantiatedToList(category, newElement);
+        }
+
+        private void BindVariableField<T>(VisualElement newField, MagicVariableObservable<T> variable, string typeLabel)
+        {
+            void Bind<TField, TValue>(string query, Action<TField, TValue> setValue,
+                Action<TField, EventCallback<ChangeEvent<TValue>>> bindCallback)
+                where TField : VisualElement
+            {
+                var f = newField.Q<TField>(query);
+                var v = variable as MagicVariableObservable<TValue>;
+                v.OnValueChanged += val => setValue(f, val);
+                setValue(f, v.Value);
+                bindCallback(f, evt => v.Value = evt.newValue);
+            }
+
+            switch (typeLabel)
+            {
+                case MagicLinksConst.String:
+                    Bind<TextField, string>("Field", (f, v) => f.SetValueWithoutNotify(v), (f, cb) => f.RegisterValueChangedCallback(cb)); break;
+                case MagicLinksConst.Bool:
+                    Bind<Toggle, bool>("Field", (f, v) => f.SetValueWithoutNotify(v), (f, cb) => f.RegisterValueChangedCallback(cb)); break;
+                case MagicLinksConst.Int:
+                    Bind<IntegerField, int>("Field", (f, v) => f.SetValueWithoutNotify(v), (f, cb) => f.RegisterValueChangedCallback(cb)); break;
+                case MagicLinksConst.Float:
+                    Bind<FloatField, float>("Field", (f, v) => f.SetValueWithoutNotify(v), (f, cb) => f.RegisterValueChangedCallback(cb)); break;
+                case MagicLinksConst.Vector2:
+                    Bind<InlineVector2Field, Vector2>("Field", (f, v) => f.SetValueWithoutNotify(v), (f, cb) => f.RegisterCallback(cb)); break;
+                case MagicLinksConst.Vector3:
+                    Bind<InlineVector3Field, Vector3>("Field", (f, v) => f.SetValueWithoutNotify(v), (f, cb) => f.RegisterCallback(cb)); break;
+            }
+        }
+
+        private void AddEventLinkRuntime<T>(string key, MagicEventObservable<T> ev, string typeLabel, string category)
+        {
+            VisualElement newElement = _runtimeLinkVTA.Instantiate();
+            VisualElement row = newElement.Q<VisualElement>("RuntimeLinkItem");
+            row.AddToClassList("eventRow");
+
+            Label nameLabel = newElement.Q<Label>("LinkName");
+            nameLabel.text = key;
+
+            VisualElement newField = BuildFieldVisual(typeLabel);
+            Func<T> getValue = BuildEventValueGetter<T>(newField, typeLabel);
+
+            Button raiseBtn = new Button(() =>
+            {
+                if (getValue == null) return;
+                ev.Raise(getValue());
+                FlashRaise(row);
+            }) { text = "Raise" };
+            raiseBtn.AddToClassList("raiseButton");
+
+            row.Add(newField);
+            row.Add(raiseBtn);
+            _runtimeContainer.Add(newElement);
+            AddInstantiatedToList(category, newElement);
+        }
+
+        private static Func<T> BuildEventValueGetter<T>(VisualElement newField, string typeLabel)
+        {
+            switch (typeLabel)
+            {
+                case MagicLinksConst.String:
+                    var sf = newField.Q<TextField>("Field");
+                    return () => (T)(object)sf.value;
+                case MagicLinksConst.Bool:
+                    var bf = newField.Q<Toggle>("Field");
+                    return () => (T)(object)bf.value;
+                case MagicLinksConst.Int:
+                    var inf = newField.Q<IntegerField>("Field");
+                    return () => (T)(object)inf.value;
+                case MagicLinksConst.Float:
+                    var ff = newField.Q<FloatField>("Field");
+                    return () => (T)(object)ff.value;
+                case MagicLinksConst.Vector2:
+                    var v2 = newField.Q<InlineVector2Field>("Field");
+                    return () => (T)(object)v2.value;
+                case MagicLinksConst.Vector3:
+                    var v3 = newField.Q<InlineVector3Field>("Field");
+                    return () => (T)(object)v3.value;
+            }
+            return null;
+        }
+
+        private void AddVoidEventLinkRuntime(string key, MagicEventVoidObservable ev, string category)
+        {
+            VisualElement newElement = _runtimeLinkVTA.Instantiate();
+            VisualElement row = newElement.Q<VisualElement>("RuntimeLinkItem");
+            row.AddToClassList("eventRow");
+            row.AddToClassList("voidEventRow");
+
+            newElement.Q<Label>("LinkName").text = key;
+
+            Button raiseBtn = new Button(() => { ev.Raise(); FlashRaise(row); }) { text = "Raise" };
+            raiseBtn.AddToClassList("raiseButton");
+            raiseBtn.style.flexGrow = 1;
+
+            row.Add(raiseBtn);
+            _runtimeContainer.Add(newElement);
+            AddInstantiatedToList(category, newElement);
+        }
+
+        private static void FlashRaise(VisualElement row)
+        {
+            row.AddToClassList("eventRowFlash");
+            row.schedule.Execute(() => row.RemoveFromClassList("eventRowFlash")).StartingIn(180);
         }
 
         private void AddInstantiatedToList(string category, VisualElement element)

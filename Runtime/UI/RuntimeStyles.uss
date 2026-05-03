@@ -1,8 +1,42 @@
 .field {
     flex-shrink: 1;
+    flex-grow: 1;
 }
 
 .texts {
-    color: rgb(208, 208, 208);
+    color: rgb(220, 220, 220);
     -unity-font-style: bold;
+}
+
+.eventRow {
+    background-color: rgb(58, 58, 80);
+}
+
+.voidEventRow {
+    background-color: rgb(58, 70, 80);
+}
+
+.eventRowFlash {
+    background-color: rgb(150, 200, 120);
+}
+
+.raiseButton {
+    background-color: rgb(80, 130, 80);
+    color: rgb(240, 240, 240);
+    -unity-font-style: bold;
+    flex-shrink: 0;
+    flex-grow: 0;
+    min-width: 56px;
+    margin-left: 4px;
+    margin-right: 4px;
+    padding-left: 6px;
+    padding-right: 6px;
+}
+
+.raiseButton:hover {
+    background-color: rgb(100, 160, 100);
+}
+
+.raiseButton:active {
+    background-color: rgb(60, 110, 60);
 }

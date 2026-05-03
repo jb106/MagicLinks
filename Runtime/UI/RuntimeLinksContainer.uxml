@@ -1,7 +1,11 @@
-<engine:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:engine="UnityEngine.UIElements" xmlns:editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+<engine:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:editor="UnityEditor.UIElements" xmlns:engine="UnityEngine.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/MagicLinks/Runtime/UI/RuntimeStyles.uss?fileID=7433441132597879392&amp;guid=55df091c6293b284d87a8e3904edd3fb&amp;type=3#RuntimeStyles" />
     <engine:Foldout text="Magic Links" value="true" focusable="true" style="width: 337px;">
         <engine:Slider label="Windows Size" value="1" high-value="3" name="WindowsSize" low-value="0.5" style="width: 300px;" />
-        <engine:DropdownField label="Category Filter" choices="Test,Test2" name="Category" />
+        <engine:DropdownField label="Category" choices="None" name="Category" style="width: 300px;" />
+        <engine:DropdownField label="Sort" choices="Default,Name (A-Z),Name (Z-A),Newest,Oldest" name="Sort" style="width: 300px;" />
+        <engine:DropdownField label="Magic Type" choices="All,Variable,Event,EventVoid" name="MagicTypeFilter" style="width: 300px;" />
+        <engine:TextField name="Search" label="Search" style="width: 300px;" />
         <engine:ScrollView name="Container" style="width: 400px; background-color: rgba(66, 66, 66, 0);" />
     </engine:Foldout>
 </engine:UXML>
