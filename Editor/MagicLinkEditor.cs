@@ -34,14 +34,25 @@ namespace MagicLinks
                 AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(
                     MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.UXMLPath));
 
-            rootVisualElement.Add(m_VisualTreeAsset.Instantiate());
+            VisualElement tree = m_VisualTreeAsset.Instantiate();
+            tree.style.flexGrow = 1;
+            rootVisualElement.style.flexGrow = 1;
+            rootVisualElement.Add(tree);
             
             rootVisualElement.Q<Toggle>().SetValueWithoutNotify(config.enableRuntimeUI);
+
+            Label versionLabel = rootVisualElement.Q<Label>("VersionLabel");
+            if (versionLabel != null)
+            {
+                string version = MagicLinksUtilities.GetPackageVersion();
+                versionLabel.text = string.IsNullOrEmpty(version) ? string.Empty : $"v{version}";
+            }
 
             HookEvents();
             SetupLeftPanelSplit();
             MagicLinksCustomTypes.UpdateTypes();
             MagicLinksCategories.UpdateCategories();
+            MagicLinksAdvancedSettings.Build();
             MagicLinksInternalVar.UpdateVariablesUI();
 
             MagicLinksScriptsGenerator.GenerateMagicVariablesScript(true);
@@ -93,14 +104,22 @@ namespace MagicLinks
             rootVisualElement.Q<Button>(MagicLinksConst.CreateVariableButtonClass).clicked += MagicLinksInternalVar.CreateVariable;
             rootVisualElement.Q<Button>(MagicLinksConst.RefreshScriptsButton).clicked += RefreshScripts;
             rootVisualElement.Q<Button>(MagicLinksConst.CreateCategoryButtonClass).clicked += MagicLinksCategories.CreateCategory;
-            rootVisualElement.Q<DropdownField>(MagicLinksConst.CategoriesDropdownClass).RegisterValueChangedCallback((s) => { MagicLinksCategories.OnCategorySelected(s.newValue); });
+            rootVisualElement.Q<DropdownField>(MagicLinksConst.CategoriesDropdownClass).RegisterValueChangedCallback((s) =>
+            {
+                EditorPrefs.SetString(MagicLinksConst.VariablesCategoryFilterKey, s.newValue);
+                MagicLinksCategories.OnCategorySelected(s.newValue);
+            });
 
             HookEnterShortcut(rootVisualElement.Q<TextField>(MagicLinksConst.VariableNameTextFieldClass), MagicLinksInternalVar.CreateVariable);
             HookEnterShortcut(rootVisualElement.Q<TextField>(MagicLinksConst.TypeTextFieldClass), MagicLinksCustomTypes.CreateType);
             HookEnterShortcut(rootVisualElement.Q<TextField>(MagicLinksConst.CreateCategoryNameTextFieldClass), MagicLinksCategories.CreateCategory);
 
             rootVisualElement.Q<TextField>(MagicLinksConst.VariablesSearchField)
-                ?.RegisterValueChangedCallback(_ => MagicLinksInternalVar.UpdateVariablesUI());
+                ?.RegisterValueChangedCallback(evt =>
+                {
+                    EditorPrefs.SetString(MagicLinksConst.VariablesSearchKey, evt.newValue ?? string.Empty);
+                    MagicLinksInternalVar.UpdateVariablesUI();
+                });
             rootVisualElement.Q<DropdownField>(MagicLinksConst.VariablesSortDropdown)
                 ?.RegisterValueChangedCallback(evt =>
                 {

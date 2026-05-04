@@ -11,9 +11,12 @@
             <engine:Button text="x" name="DeleteButton" class="singleVariableElement" style="-unity-font-style: bold; background-color: rgb(188, 71, 71); width: 24px; flex-shrink: 0; flex-grow: 0;" />
         </engine:VisualElement>
         <engine:VisualElement name="Settings" style="flex-direction: row; flex-wrap: wrap; align-items: center; padding-left: 30px; padding-right: 6px; padding-bottom: 6px; padding-top: 2px; display: none;">
-            <engine:DropdownField name="MagicType" index="0" class="singleVariableElement" style="flex-grow: 1; flex-shrink: 1; min-width: 100px; max-width: 200px;" />
-            <engine:DropdownField name="Category" choices="Player,Enemy" index="0" class="singleVariableElement" style="flex-grow: 1; flex-shrink: 1; min-width: 100px; max-width: 200px;" />
-            <engine:VisualElement name="InitialValueContainer" class="singleVariableElement" style="flex-grow: 2; flex-shrink: 1; flex-direction: row; align-items: center; min-width: 120px;" />
+            <engine:DropdownField label="Magic Type" name="MagicType" index="0" class="singleVariableElement" style="flex-grow: 1; flex-shrink: 1; min-width: 160px; max-width: 240px;" />
+            <engine:DropdownField label="Category" name="Category" choices="Player,Enemy" index="0" class="singleVariableElement" style="flex-grow: 1; flex-shrink: 1; min-width: 160px; max-width: 240px;" />
+            <engine:VisualElement class="singleVariableElement" style="flex-grow: 2; flex-shrink: 1; flex-direction: row; align-items: center; min-width: 200px;">
+                <engine:Label text="Initial Value" style="margin-right: 6px; opacity: 0.85; min-width: 70px; flex-shrink: 0;" />
+                <engine:VisualElement name="InitialValueContainer" style="flex-grow: 1; flex-shrink: 1; flex-direction: row; align-items: center; min-width: 80px;" />
+            </engine:VisualElement>
         </engine:VisualElement>
     </engine:VisualElement>
 </engine:UXML>

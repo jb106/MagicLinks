@@ -60,8 +60,10 @@ namespace MagicLinks
                 categories.choices.Add(category);
             }
 
-            if (categories.choices.Count == 1 || categories.choices.IndexOf(categories.value) == -1)
-                categories.index = 0;
+            // Restore the previously selected category (survives recompile + re-open) if it still exists.
+            string stored = EditorPrefs.GetString(MagicLinksConst.VariablesCategoryFilterKey, MagicLinksConst.CategoryNone);
+            int storedIndex = categories.choices.IndexOf(stored);
+            categories.index = storedIndex >= 0 ? storedIndex : 0;
 
             //Foldout
             Foldout foldout =
@@ -84,6 +86,7 @@ namespace MagicLinks
                 foldout.Add(customTypeElement);
             }
 
+            MagicLinksAdvancedSettings.Build();
             MagicLinksInternalVar.UpdateVariablesUI();
         }
     }

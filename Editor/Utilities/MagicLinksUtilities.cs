@@ -79,6 +79,21 @@ namespace MagicLinks
             return _cachedPackagePath;
         }
 
+        public static string GetPackageVersion()
+        {
+            string packagePath = GetPackagePath();
+            string root = string.IsNullOrEmpty(packagePath) ? "Assets/MagicLinks" : packagePath;
+            string jsonPath = Path.Combine(root, "package.json");
+            if (!File.Exists(jsonPath)) return string.Empty;
+            try
+            {
+                string content = File.ReadAllText(jsonPath);
+                var match = System.Text.RegularExpressions.Regex.Match(content, "\"version\"\\s*:\\s*\"([^\"]+)\"");
+                return match.Success ? match.Groups[1].Value : string.Empty;
+            }
+            catch { return string.Empty; }
+        }
+
         public static List<string> GetAllTypes()
         {
             List<string> types = new List<string>();

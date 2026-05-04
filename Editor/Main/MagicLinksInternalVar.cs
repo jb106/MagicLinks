@@ -74,6 +74,11 @@ namespace MagicLinks
             //Load all variables from resources
             List<DynamicVariable> existingVariables = GetExistingVariables();
 
+            // Fix orphans (variables whose category was deleted) in a single pass BEFORE rendering.
+            // Otherwise we'd trigger a recursive UpdateVariablesUI inside the per-variable loop,
+            // which clears the container while we're still iterating it (causes Unity UI corruption).
+            FixOrphanCategories(existingVariables);
+
             VisualTreeAsset variableUXML =
                 AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(
                     MagicLinksUtilities.GetPackageRelativePath(MagicLinksConst.UXMLVariablePath));
@@ -90,20 +95,35 @@ namespace MagicLinks
 
             VisualElement root = MagicLinkEditor.Instance.rootVisualElement;
 
-            string currentCategorySelected = root.Q<DropdownField>(MagicLinksConst.CategoriesDropdownClass).value;
-
             // Restore persisted toolbar values on first build, then read current values
+            DropdownField categoryField = root.Q<DropdownField>(MagicLinksConst.CategoriesDropdownClass);
             DropdownField sortField = root.Q<DropdownField>(MagicLinksConst.VariablesSortDropdown);
             DropdownField magicTypeField = root.Q<DropdownField>(MagicLinksConst.VariablesMagicTypeFilterDropdown);
             TextField searchField = root.Q<TextField>(MagicLinksConst.VariablesSearchField);
 
+            string currentCategorySelected = categoryField != null
+                ? RestoreDropdownValue(categoryField, MagicLinksConst.VariablesCategoryFilterKey, MagicLinksConst.CategoryNone)
+                : MagicLinksConst.CategoryNone;
             string sortMode = sortField != null
                 ? RestoreDropdownValue(sortField, MagicLinksConst.VariablesSortKey, MagicLinksConst.SortDefault)
                 : MagicLinksConst.SortDefault;
             string magicTypeFilter = magicTypeField != null
                 ? RestoreDropdownValue(magicTypeField, MagicLinksConst.VariablesMagicTypeFilterKey, MagicLinksConst.MagicTypeFilterAll)
                 : MagicLinksConst.MagicTypeFilterAll;
-            string search = searchField != null ? (searchField.value ?? string.Empty).Trim() : string.Empty;
+
+            // Restore search from EditorPrefs if the field is empty (after recompile),
+            // otherwise keep what the user just typed.
+            string search;
+            if (searchField != null)
+            {
+                if (string.IsNullOrEmpty(searchField.value))
+                {
+                    string stored = EditorPrefs.GetString(MagicLinksConst.VariablesSearchKey, string.Empty);
+                    if (!string.IsNullOrEmpty(stored)) searchField.SetValueWithoutNotify(stored);
+                }
+                search = (searchField.value ?? string.Empty).Trim();
+            }
+            else search = string.Empty;
 
             MagicLinksConfiguration config = MagicLinksUtilities.GetConfiguration();
             config.typesNamesPairs.Clear();
@@ -167,10 +187,13 @@ namespace MagicLinks
                 {
                     if (showCategoryHeaders && visibleCategories.Contains(categoryKey))
                     {
-                        VisualElement newHeader = variableHeader.Instantiate();
-                        newHeader.Q<Label>("HeaderText").text = categoryKey;
-
-                        variablesContainer.Add(newHeader);
+                        VisualElement newHeader = SafeInstantiate(variableHeader, "VariableHeader");
+                        if (newHeader != null)
+                        {
+                            newHeader.Q<Label>("HeaderText").text = categoryKey;
+                            ApplyHeaderColors(newHeader, config, categoryKey);
+                            variablesContainer.Add(newHeader);
+                        }
                     }
 
                     lastCategory = categoryKey;
@@ -186,8 +209,10 @@ namespace MagicLinks
                     if (v.category != currentCategorySelected) continue;
                 }
 
-                VisualElement newUIVariable = variableUXML.Instantiate();
+                VisualElement newUIVariable = SafeInstantiate(variableUXML, "Variable");
+                if (newUIVariable == null) continue;
 
+                ApplyRowColor(newUIVariable, config, string.IsNullOrEmpty(v.category) ? MagicLinksConst.CategoryNone : v.category);
                 SetupVariableFoldout(v, newUIVariable);
                 AddInitialSelectorToVariableUI(v, newUIVariable);
 
@@ -255,14 +280,11 @@ namespace MagicLinks
                     category.choices.Add(categoryName);
                 }
 
-                bool goBackToNone = false;
-                if (category.choices.IndexOf(v.category) == -1)
-                {
-                    OnSingleVariableCategoryChanged(v, MagicLinksConst.CategoryNone);
-                    goBackToNone = true;
-                }
+                // Orphans were already normalized to CategoryNone before rendering (FixOrphanCategories).
+                string effective = string.IsNullOrEmpty(v.category) ? MagicLinksConst.CategoryNone : v.category;
+                if (category.choices.IndexOf(effective) == -1) effective = MagicLinksConst.CategoryNone;
 
-                category.SetValueWithoutNotify(goBackToNone ? MagicLinksConst.CategoryNone : v.category);
+                category.SetValueWithoutNotify(effective);
                 category.RegisterValueChangedCallback((c) => { OnSingleVariableCategoryChanged(v, c.newValue); });
 
                 variablesContainer.Add(newUIVariable);
@@ -338,6 +360,84 @@ namespace MagicLinks
         {
             try { return File.GetCreationTimeUtc(path); }
             catch { return System.DateTime.MinValue; }
+        }
+
+        // Defensive wrapper: Unity sometimes throws IndexOutOfRangeException in CloneSetupRecursively
+        // when its UXML asset cache is out of sync (typical after edits while the window is open).
+        // We log a clear hint instead of crashing the whole UI.
+        private static VisualElement SafeInstantiate(VisualTreeAsset vta, string assetLabel)
+        {
+            if (vta == null)
+            {
+                Debug.LogError($"[MagicLinks] {assetLabel} UXML asset is null.");
+                return null;
+            }
+            try
+            {
+                return vta.Instantiate();
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[MagicLinks] Failed to instantiate {assetLabel} UXML — Unity asset cache is likely stale. Right-click the .uxml file in the Project window and choose Reimport, or restart Unity. Inner: {e.Message}");
+                return null;
+            }
+        }
+
+        // Resets variables whose stored category no longer exists (e.g. user deleted it).
+        // Performs file writes once per orphan WITHOUT triggering UI rebuilds — that would
+        // re-enter UpdateVariablesUI while it's still iterating and corrupt Unity's UI tree.
+        private static void FixOrphanCategories(List<DynamicVariable> variables)
+        {
+            MagicLinksConfiguration config = MagicLinksUtilities.GetConfiguration();
+            HashSet<string> validCategories = new HashSet<string>(config.categories) { MagicLinksConst.CategoryNone };
+
+            foreach (DynamicVariable v in variables)
+            {
+                string current = string.IsNullOrEmpty(v.category) ? MagicLinksConst.CategoryNone : v.category;
+                if (validCategories.Contains(current)) continue;
+
+                v.category = MagicLinksConst.CategoryNone;
+                try
+                {
+                    File.WriteAllText(v.vPath, JsonUtility.ToJson(v, true));
+                    AssetDatabase.ImportAsset(v.vPath);
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogError($"[MagicLinks] Could not fix orphan category for '{v.vName}': {e.Message}");
+                }
+            }
+        }
+
+        private static void ApplyHeaderColors(VisualElement header, MagicLinksConfiguration config, string categoryKey)
+        {
+            // The variable category header has structure: outer VisualElement (.variableCategoryHeader)
+            // with a Label child. The outer's background = main color, its left border = accent.
+            VisualElement root = header is TemplateContainer tc && tc.childCount > 0 ? tc[0] : header;
+
+            Color bg = config.variableHeaderColor;
+            Color accent = config.variableHeaderAccent;
+
+            MagicCategoryStyle style = MagicLinksAdvancedSettings.TryGetStyle(config, categoryKey);
+            if (style != null && style.useCustomHeader)
+            {
+                bg = style.headerColor;
+                // Derive accent from header color for custom headers (lighter shade).
+                accent = Color.Lerp(bg, Color.white, 0.4f);
+            }
+
+            root.style.backgroundColor = bg;
+            root.style.borderLeftColor = accent;
+        }
+
+        private static void ApplyRowColor(VisualElement variableUI, MagicLinksConfiguration config, string categoryKey)
+        {
+            MagicCategoryStyle style = MagicLinksAdvancedSettings.TryGetStyle(config, categoryKey);
+            if (style == null || !style.useCustomRow) return;
+
+            // Tint the inner Variable container so the row stands out.
+            VisualElement variableRoot = variableUI.Q<VisualElement>("Variable");
+            if (variableRoot != null) variableRoot.style.backgroundColor = style.rowColor;
         }
 
         private static void SetupVariableFoldout(DynamicVariable variable, VisualElement variableUI)

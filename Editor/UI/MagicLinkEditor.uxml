@@ -1,6 +1,4 @@
 <engine:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:engine="UnityEngine.UIElements" xmlns:editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
-    <engine:Template name="VariableHeader" src="project://database/Assets/MagicLinks/Editor/UI/VariableHeader.uxml?fileID=9197481963319205126&amp;guid=449225be352401947b5430bb11efb5a3&amp;type=3#VariableHeader" />
-    <engine:Template name="Variable" src="project://database/Assets/MagicLinks/Editor/UI/Variable.uxml?fileID=9197481963319205126&amp;guid=f0c2e2bf5bfbc3940bf3d84ab825f8bc&amp;type=3#Variable" />
     <Style src="project://database/Assets/MagicLinks/Editor/UI/Styles/MagicLinkEditor.uss?fileID=7433441132597879392&amp;guid=07d5adbb4eb8320469843d90b76b41de&amp;type=3#MagicLinkEditor" />
     <engine:VisualElement style="flex-grow: 1; width: 100%; height: 100%; flex-direction: row;">
         <engine:TwoPaneSplitView name="MainSplitView" fixed-pane-index="0" fixed-pane-initial-dimension="240" orientation="Horizontal" style="flex-grow: 1;">
@@ -9,23 +7,27 @@
                     <engine:Button name="CollapseLeftPanel" text="◂" tooltip="Hide settings panel" style="width: 22px; height: 20px; padding: 0; margin: 0; -unity-font-style: bold;" />
                 </engine:VisualElement>
                 <engine:ScrollView name="FolderList" focusable="false" style="width: auto; height: auto; flex-grow: 1; justify-content: flex-start; opacity: 1; overflow: visible; visibility: visible; display: flex; background-color: rgb(85, 85, 85); -unity-background-scale-mode: stretch-to-fill; -unity-font-style: normal;">
-                    <engine:VisualElement style="flex-grow: 1; background-image: url(&quot;project://database/Assets/MagicLinks/Editor/Sprites/MagicLinks_Logo_2.png?fileID=2800000&amp;guid=65485ddb495ed75448928f74afa4504a&amp;type=3#MagicLinks_Logo_2&quot;); width: 100%; height: 50px; flex-wrap: nowrap; flex-direction: row; -unity-background-scale-mode: scale-to-fit; margin-top: 5px; margin-bottom: 5px;" />
+                    <engine:VisualElement style="flex-grow: 0; background-image: url(&quot;project://database/Assets/MagicLinks/Editor/Sprites/MagicLinks_Logo_2.png?fileID=2800000&amp;guid=65485ddb495ed75448928f74afa4504a&amp;type=3#MagicLinks_Logo_2&quot;); width: 100%; height: 50px; flex-wrap: nowrap; flex-direction: row; -unity-background-scale-mode: scale-to-fit; margin-top: 5px; margin-bottom: 2px;" />
+                    <engine:Label text="Create observable variables and events to decouple your gameplay systems." name="HeaderDescription" style="-unity-text-align: middle-center; white-space: normal; font-size: 11px; opacity: 0.8; padding-left: 10px; padding-right: 10px; margin-bottom: 2px;" />
+                    <engine:Label text="v—" name="VersionLabel" style="-unity-text-align: middle-center; font-size: 10px; opacity: 0.5; margin-bottom: 6px;" />
                     <engine:Toggle label="Enable Runtime UI" name="EnableRuntimeUI" />
                     <engine:Button text="Refresh Scripts" name="RefreshScripts" style="-unity-font-definition: url(&quot;project://database/Assets/MagicLinks/Editor/Fonts/Helvetica/Helvetica.ttf?fileID=12800000&amp;guid=b4e6e011032fcf94e999ee13a92ce425&amp;type=3#Helvetica&quot;);" />
-                    <engine:VisualElement style="flex-grow: 1; height: 3px; background-color: rgba(0, 0, 0, 0.39); margin-top: 3px; margin-right: 3px; margin-bottom: 3px; margin-left: 3px;" />
-                    <engine:Label text="Custom Types Creator" style="-unity-text-align: upper-center; margin-bottom: 5px; -unity-font-style: bold;" />
+                    <engine:VisualElement class="leftSectionDivider" />
+                    <engine:Label text="Custom Types Creator" class="leftSectionLabel" />
                     <engine:VisualElement name="CreateType" class="LeftListElement" style="background-color: rgb(85, 85, 85);">
                         <engine:TextField placeholder-text="type..." is-delayed="false" multiline="false" name="TypeName" class="LeftListInnerElement" style="opacity: 1;" />
                         <engine:Button text="Create" name="CreateTypeButton" class="LeftListInnerElement" style="flex-grow: 0;" />
                     </engine:VisualElement>
                     <engine:Foldout text="Custom Types" name="CustomTypesFoldout" value="true" />
-                    <engine:VisualElement style="flex-grow: 1; height: 3px; background-color: rgba(0, 0, 0, 0.39); margin-top: 3px; margin-right: 3px; margin-bottom: 3px; margin-left: 3px;" />
-                    <engine:Label text="Category Creator" style="-unity-text-align: upper-center; margin-bottom: 5px; -unity-font-style: bold;" />
+                    <engine:VisualElement class="leftSectionDivider" />
+                    <engine:Label text="Category Creator" class="leftSectionLabel" />
                     <engine:VisualElement name="CreateCategory" class="LeftListElement" style="background-color: rgb(85, 85, 85);">
                         <engine:TextField placeholder-text="name..." is-delayed="false" multiline="false" name="CategoryName" class="LeftListInnerElement" style="opacity: 1;" />
                         <engine:Button text="Create" name="CreateCategoryButton" class="LeftListInnerElement" style="flex-grow: 0;" />
                     </engine:VisualElement>
                     <engine:Foldout text="Categories" name="CategoriesFoldout" value="true" />
+                    <engine:VisualElement class="leftSectionDivider" />
+                    <engine:Foldout text="Advanced Settings" name="AdvancedSettingsFoldout" value="false" />
                 </engine:ScrollView>
             </engine:VisualElement>
             <engine:VisualElement name="RightPanel" style="flex-grow: 1; flex-direction: column; background-color: rgb(51, 51, 51);">
@@ -41,10 +43,7 @@
                         <engine:DropdownField name="VariablesSort" choices="Default,Name (A-Z),Name (Z-A),Newest,Oldest" index="0" tooltip="Sort variables" style="flex-grow: 1; flex-shrink: 1; min-width: 100px; max-width: 160px; margin-right: 4px;" />
                         <engine:DropdownField name="VariablesMagicTypeFilter" choices="All,Variable,Event,EventVoid" index="0" tooltip="Filter by magic type" style="flex-grow: 1; flex-shrink: 1; min-width: 100px; max-width: 140px;" />
                     </engine:VisualElement>
-                    <engine:VisualElement name="VariablesContainer" style="flex-grow: 1;">
-                        <engine:Instance template="VariableHeader" />
-                        <engine:Instance template="Variable" />
-                    </engine:VisualElement>
+                    <engine:VisualElement name="VariablesContainer" style="flex-grow: 1;" />
                 </engine:ScrollView>
             </engine:VisualElement>
         </engine:TwoPaneSplitView>

@@ -27,6 +27,10 @@
     min-width: initial;
     flex-direction: row;
     max-width: none;
+    margin-left: 4px;
+    margin-right: 4px;
+    margin-bottom: 4px;
+    padding: 2px;
     -unity-font-definition: url("project://database/Assets/MagicLinks/Editor/Fonts/Helvetica/Helvetica.ttf?fileID=12800000&guid=b4e6e011032fcf94e999ee13a92ce425&type=3#Helvetica");
 }
 
@@ -34,4 +38,49 @@
     min-width: 80px;
     max-width: 80px;
     flex-direction: column;
+}
+
+.leftListItem:hover {
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+.leftSectionLabel {
+    -unity-text-align: upper-center;
+    margin-top: 6px;
+    margin-bottom: 4px;
+    -unity-font-style: bold;
+    color: rgb(200, 200, 200);
+    font-size: 12px;
+    -unity-font-definition: url("project://database/Assets/MagicLinks/Editor/Fonts/Helvetica/Helvetica.ttf?fileID=12800000&guid=b4e6e011032fcf94e999ee13a92ce425&type=3#Helvetica");
+}
+
+.leftSectionDivider {
+    height: 1px;
+    background-color: rgba(0, 0, 0, 0.4);
+    margin-top: 4px;
+    margin-right: 8px;
+    margin-bottom: 4px;
+    margin-left: 8px;
+}
+
+.variableCategoryHeader {
+    flex-grow: 0;
+    width: 100%;
+    height: 28px;
+    margin-top: 6px;
+    background-color: rgb(70, 95, 130);
+    border-left-width: 4px;
+    border-left-color: rgb(120, 170, 230);
+    border-top-left-radius: 2px;
+    border-bottom-left-radius: 2px;
+}
+
+.variableCategoryHeaderLabel {
+    color: rgb(245, 245, 245);
+    -unity-font-style: bold;
+    -unity-text-align: middle-left;
+    height: 100%;
+    font-size: 14px;
+    padding-left: 10px;
+    -unity-font-definition: url("project://database/Assets/MagicLinks/Editor/Fonts/Helvetica/Helvetica.ttf?fileID=12800000&guid=b4e6e011032fcf94e999ee13a92ce425&type=3#Helvetica");
 }

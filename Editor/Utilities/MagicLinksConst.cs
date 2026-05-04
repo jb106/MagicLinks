@@ -126,6 +126,8 @@ namespace MagicLinks
 
         public const string VariablesSortKey = "MagicLinks_VariablesSort";
         public const string VariablesMagicTypeFilterKey = "MagicLinks_VariablesMagicTypeFilter";
+        public const string VariablesCategoryFilterKey = "MagicLinks_VariablesCategoryFilter";
+        public const string VariablesSearchKey = "MagicLinks_VariablesSearch";
 
         public const string SortDefault = "Default";
         public const string SortNameAsc = "Name (A-Z)";
@@ -134,6 +136,8 @@ namespace MagicLinks
         public const string SortOldest = "Oldest";
 
         public const string MagicTypeFilterAll = "All";
+
+        public const string AdvancedSettingsFoldout = "AdvancedSettingsFoldout";
 
         public const string CustomTypesFoldout = "CustomTypesFoldout";
         public const string CustomTypeElementName = "CustomTypeName";
