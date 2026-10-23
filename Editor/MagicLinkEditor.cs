@@ -57,6 +57,7 @@ namespace MagicLinks
 
             MagicLinksScriptsGenerator.GenerateMagicVariablesScript(true);
             MagicLinksScriptsGenerator.GenerateListenersScripts(true);
+            MagicLinksNetworkScriptsGenerator.GenerateNetworkScript();
         }
 
         private void SetupLeftPanelSplit()
@@ -166,6 +167,7 @@ namespace MagicLinks
                 MagicLinksScriptsGenerator.ClearListeners(true);
                 MagicLinksScriptsGenerator.GenerateMagicVariablesScript(false);
                 MagicLinksScriptsGenerator.GenerateListenersScripts();
+                MagicLinksNetworkScriptsGenerator.GenerateNetworkScript();
             }
             finally
             {

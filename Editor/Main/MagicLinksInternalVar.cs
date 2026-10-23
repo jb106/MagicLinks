@@ -163,6 +163,8 @@ namespace MagicLinks
 
             // Cache once instead of recomputing per variable
             List<string> allTypes = MagicLinksUtilities.GetAllTypes();
+            MagicLinksNetworkAnalysis networkAnalysis = MagicLinksNetworkAnalyzer.Analyze(existingVariables, config);
+            bool isNetcodeInstalled = MagicLinksNetcodeSupport.IsNetcodeInstalled;
 
             bool showCategoryHeaders = groupByCategory && currentCategorySelected == MagicLinksConst.CategoryNone;
 
@@ -215,6 +217,7 @@ namespace MagicLinks
                 ApplyRowColor(newUIVariable, config, string.IsNullOrEmpty(v.category) ? MagicLinksConst.CategoryNone : v.category);
                 SetupVariableFoldout(v, newUIVariable);
                 AddInitialSelectorToVariableUI(v, newUIVariable);
+                AddNetworkSelectorToVariableUI(v, newUIVariable, networkAnalysis, isNetcodeInstalled);
 
                 DropdownField field = newUIVariable.Q<DropdownField>(MagicLinksConst.SingleVariableType);
 
@@ -311,6 +314,7 @@ namespace MagicLinks
 
             AssetDatabase.ImportAsset(variable.vPath);
             UpdateVariablesUI();
+            MagicLinksNetworkScriptsGenerator.GenerateNetworkScript();
         }
 
         public static void OnIsListChanged(DynamicVariable variable, bool isList)
@@ -321,6 +325,65 @@ namespace MagicLinks
 
             AssetDatabase.ImportAsset(variable.vPath);
             UpdateVariablesUI();
+            MagicLinksNetworkScriptsGenerator.GenerateNetworkScript();
+        }
+
+        public static void OnIsNetworkedChanged(DynamicVariable variable, bool isNetworked)
+        {
+            DynamicVariable variableToUpdate = JsonUtility.FromJson<DynamicVariable>(File.ReadAllText(variable.vPath));
+            variableToUpdate.isNetworked = isNetworked;
+            File.WriteAllText(variable.vPath, JsonUtility.ToJson(variableToUpdate, true));
+
+            AssetDatabase.ImportAsset(variable.vPath);
+            UpdateVariablesUI();
+            MagicLinksNetworkScriptsGenerator.GenerateNetworkScript();
+        }
+
+        public static void OnResetOnLeaveChanged(DynamicVariable variable, bool resetOnLeave)
+        {
+            DynamicVariable variableToUpdate = JsonUtility.FromJson<DynamicVariable>(File.ReadAllText(variable.vPath));
+            variableToUpdate.resetOnWriterDisconnect = resetOnLeave;
+            File.WriteAllText(variable.vPath, JsonUtility.ToJson(variableToUpdate, true));
+
+            AssetDatabase.ImportAsset(variable.vPath);
+            UpdateVariablesUI();
+            MagicLinksNetworkScriptsGenerator.GenerateNetworkScript();
+        }
+
+        public static void AddNetworkSelectorToVariableUI(DynamicVariable variable, VisualElement variableUI,
+            MagicLinksNetworkAnalysis analysis, bool isNetcodeInstalled)
+        {
+            Toggle networkedToggle = variableUI.Q<Toggle>(MagicLinksConst.SingleVariableIsNetworked);
+            Toggle resetToggle = variableUI.Q<Toggle>(MagicLinksConst.SingleVariableResetOnLeave);
+            Label badge = variableUI.Q<Label>(MagicLinksConst.SingleVariableNetworkBadge);
+            Label errorLabel = variableUI.Q<Label>(MagicLinksConst.SingleVariableNetworkError);
+            if (networkedToggle == null || resetToggle == null || badge == null || errorLabel == null) return;
+
+            networkedToggle.SetValueWithoutNotify(variable.isNetworked);
+            networkedToggle.RegisterValueChangedCallback(evt => OnIsNetworkedChanged(variable, evt.newValue));
+
+            if (isNetcodeInstalled == false)
+                networkedToggle.tooltip = "Netcode for GameObjects is not installed: networked links stay local.";
+
+            badge.style.display = variable.isNetworked ? DisplayStyle.Flex : DisplayStyle.None;
+            if (isNetcodeInstalled == false) badge.style.opacity = 0.5f;
+
+            // Resetting only makes sense for a state, not for an event.
+            bool showReset = variable.isNetworked && variable.IsEvent() == false;
+            resetToggle.style.display = showReset ? DisplayStyle.Flex : DisplayStyle.None;
+            if (variable.isList)
+            {
+                resetToggle.label = "Remove items on leave";
+                resetToggle.tooltip = "When a client disconnects, the server removes the items it added (useful for per-player entries).";
+            }
+            resetToggle.SetValueWithoutNotify(variable.resetOnWriterDisconnect);
+            resetToggle.RegisterValueChangedCallback(evt => OnResetOnLeaveChanged(variable, evt.newValue));
+
+            MagicNetLinkDescription link = analysis?.GetLink(variable.vName);
+            bool hasErrors = link != null && link.errors.Count > 0;
+
+            errorLabel.style.display = hasErrors ? DisplayStyle.Flex : DisplayStyle.None;
+            if (hasErrors) errorLabel.tooltip = string.Join("\n", link.errors);
         }
 
         public static void AddInitialSelectorToVariableUI(DynamicVariable variable, VisualElement variableUI)
@@ -548,12 +611,14 @@ namespace MagicLinks
             AssetDatabase.Refresh();
 
             UpdateVariablesUI();
+            MagicLinksNetworkScriptsGenerator.GenerateNetworkScript();
         }
 
         public static void OnDeleteSingleVariable(string path)
         {
             AssetDatabase.DeleteAsset(path);
             UpdateVariablesUI();
+            MagicLinksNetworkScriptsGenerator.GenerateNetworkScript();
         }
     }
 }

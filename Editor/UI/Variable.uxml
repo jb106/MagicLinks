@@ -8,6 +8,8 @@
             <engine:DropdownField name="Type" class="singleVariableElement" style="flex-grow: 0; flex-shrink: 1; min-width: 70px; max-width: 160px;" />
             <engine:Label text="List" name="IsListLabel" class="singleVariableElement" tooltip="Is List" style="flex-shrink: 0; flex-grow: 0; opacity: 0.7;" />
             <engine:Toggle name="IsList" class="singleVariableElement" tooltip="Is List" style="flex-shrink: 0; flex-grow: 0;" />
+            <engine:Label text="NET" name="NetworkBadge" tooltip="Synchronized in a network session" class="singleVariableElement" style="flex-shrink: 0; flex-grow: 0; font-size: 9px; -unity-font-style: bold; padding-left: 4px; padding-right: 4px; border-top-left-radius: 3px; border-top-right-radius: 3px; border-bottom-left-radius: 3px; border-bottom-right-radius: 3px; background-color: rgba(120, 170, 230, 0.35); display: none;" />
+            <engine:Label text="!" name="NetworkError" class="singleVariableElement" style="flex-shrink: 0; flex-grow: 0; -unity-font-style: bold; color: rgb(255, 255, 255); padding-left: 5px; padding-right: 5px; border-top-left-radius: 3px; border-top-right-radius: 3px; border-bottom-left-radius: 3px; border-bottom-right-radius: 3px; background-color: rgb(188, 71, 71); display: none;" />
             <engine:Button text="x" name="DeleteButton" class="singleVariableElement" style="-unity-font-style: bold; background-color: rgb(188, 71, 71); width: 24px; flex-shrink: 0; flex-grow: 0;" />
         </engine:VisualElement>
         <engine:VisualElement name="Settings" style="flex-direction: row; flex-wrap: wrap; align-items: center; padding-left: 30px; padding-right: 6px; padding-bottom: 6px; padding-top: 2px; display: none;">
@@ -17,6 +19,8 @@
                 <engine:Label text="Initial Value" style="margin-right: 6px; opacity: 0.85; min-width: 70px; flex-shrink: 0;" />
                 <engine:VisualElement name="InitialValueContainer" style="flex-grow: 1; flex-shrink: 1; flex-direction: row; align-items: center; min-width: 80px;" />
             </engine:VisualElement>
+            <engine:Toggle label="Networked" name="IsNetworked" tooltip="Synchronized by the server in a network session. Behaves exactly as a local link when offline." class="singleVariableElement" style="flex-grow: 0; flex-shrink: 0; min-width: 160px;" />
+            <engine:Toggle label="Reset on leave" name="ResetOnLeave" tooltip="When the client who last wrote this value disconnects, the server resets it to its value at session start (useful for locks)." class="singleVariableElement" style="flex-grow: 0; flex-shrink: 0; min-width: 160px;" />
         </engine:VisualElement>
     </engine:VisualElement>
 </engine:UXML>

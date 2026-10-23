@@ -10,6 +10,11 @@ namespace MagicLinks
         public const string EventsListenersPath = "Assets/Resources/MagicLinks/EventsListeners/";
         public const string VariablesListenersPath = "Assets/Resources/MagicLinks/VariablesListeners/";
         public const string ConfigurationName = "MagicLinksConfiguration.asset";
+        public const string NetworkPath = "Assets/Resources/MagicLinks/Network/";
+        public const string NetworkScriptName = "MagicLinksNetwork";
+
+        public const string NetcodePackageName = "com.unity.netcode.gameobjects";
+        public const string NetcodeDefine = "MAGICLINKS_NETCODE";
 
         public const string VariablesPath = "Assets/Resources/MagicLinks/Links/";
         public const string VariablesResourcesPath = "MagicLinks/Links/";
@@ -52,6 +57,7 @@ namespace MagicLinks
 
         public const string MagicVariablesTemplate = "Editor/Various/MagicVariablesTemplate.cs";
         public const string MagicVariableClassName = "MagicLinksManager";
+        public const string MagicNetworkTemplate = "Editor/Various/MagicNetworkTemplate.cs";
 
         public const string TemplateListenerSeparation = "#SEPARATION";
 
@@ -106,6 +112,10 @@ namespace MagicLinks
         public const string SingleVariableExpandToggle = "ExpandToggle";
         public const string SingleVariableInitialValueContainer = "InitialValueContainer";
         public const string SingleVariableSettings = "Settings";
+        public const string SingleVariableIsNetworked = "IsNetworked";
+        public const string SingleVariableResetOnLeave = "ResetOnLeave";
+        public const string SingleVariableNetworkBadge = "NetworkBadge";
+        public const string SingleVariableNetworkError = "NetworkError";
 
         public const string ExpandSessionKeyPrefix = "MagicLinks_Var_Expanded_";
         public const string ExpandedArrow = "▾";

@@ -11,6 +11,8 @@ namespace MagicLinks
         public int magicType;
         public string category;
         public bool isList;
+        public bool isNetworked;
+        public bool resetOnWriterDisconnect;
 
         public bool IsEvent()
         {

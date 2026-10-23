@@ -47,6 +47,7 @@ namespace MagicLinks
                 MagicLinksScriptsGenerator.ClearListeners(true);
                 MagicLinksScriptsGenerator.GenerateMagicVariablesScript(false);
                 MagicLinksScriptsGenerator.GenerateListenersScripts();
+                MagicLinksNetworkScriptsGenerator.GenerateNetworkScript();
             }
             finally
             {
