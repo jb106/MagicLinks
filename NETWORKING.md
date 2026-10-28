@@ -18,33 +18,33 @@ The local value only changes when the server sends it back.
 
 So **don't read a value right after writing it**: on a client, you get the old one.
 
-```csharp
-// On a client, lever.Value is still false here: the gate never opens
-lever.Value = true;
-if (lever.Value) OpenGate();
+```diff
+- // On a client, lever.Value is still false here: the gate never opens
+- lever.Value = true;
+- if (lever.Value) OpenGate();
 ```
 
 **React in `OnValueChanged` instead.** It runs on every player once the new value arrives:
 
 ```csharp
-    private void OnEnable()  => Lever.OnValueChanged += OnLeverChanged;
-    private void OnDisable() => Lever.OnValueChanged -= OnLeverChanged;
+private void OnEnable()  => Lever.OnValueChanged += OnLeverChanged;
+private void OnDisable() => Lever.OnValueChanged -= OnLeverChanged;
 
-    private void OnLeverChanged(bool pulled)
-    {
-        if (pulled) OpenGate();
-    }
+private void OnLeverChanged(bool pulled)
+{
+    if (pulled) OpenGate();
+}
 ```
 
 The same mistake with numbers:
 
-```csharp
-// On a client, both lines read the old value (100): the result is 110, not 120
-gold.Value += 10;
-gold.Value += 10;
+```diff
+- // On a client, both lines read the old value (100): the result is 110, not 120
+- gold.Value += 10;
+- gold.Value += 10;
 
-// Correct is this
-gold.Value += 20;
++ // Compute once, write once
++ gold.Value += 20;
 ```
 
 > On the host and offline, values change immediately, so this mistake only shows up on clients.
@@ -57,10 +57,10 @@ P1 and P2 play together. There is one chest, and only one player at a time can h
 
 ### The trap
 
-```csharp
-// P1 and P2 click at the same time.
-// Both see -1, both write their id, both open the chest.
-if (chest.Value == -1) chest.Value = myId;
+```diff
+- // P1 and P2 click at the same time.
+- // Both see -1, both write their id, both open the chest.
+- if (chest.Value == -1) chest.Value = myId;
 ```
 
 ### Fix 1: `SetIfAsync`
@@ -73,7 +73,7 @@ int myId = (int)MagicLinksNetwork.LocalClientId;
 
 if (await chest.SetIfAsync(expected: -1, value: myId) == MagicWriteResult.Accepted)
 {
-    OpenChestUI(); 
+    OpenChestUI();
 }
 else
 {
@@ -144,12 +144,12 @@ Every write has an `Async` version: `SetAsync`, `SetIfAsync`, `AddAsync`, `Remov
 
 A client can't write while it's still connecting. Those writes are ignored, with a warning.
 
-```csharp
-// Too early on a client
-void Start() => MagicVariables.INT["Gold"].Value = 0;
+```diff
+- // Too early on a client
+- void Start() => MagicVariables.INT["Gold"].Value = 0;
 
-// This is correct
-MagicLinksNetwork.OnSessionReady += () => MagicVariables.INT["Gold"].Value = 0;
++ // Wait for the session
++ MagicLinksNetwork.OnSessionReady += () => MagicVariables.INT["Gold"].Value = 0;
 ```
 
 | API | |
@@ -170,13 +170,13 @@ MagicEvents.VECTOR3["Explosion"].Raise(position);
 
 Every player receives it **exactly once, in the same order**. That includes the player who raised it, after a round trip to the server.
 
-```csharp
-// WRONG : The effect plays twice for the player who raised it
-MagicEvents.VECTOR3["Explosion"].Raise(position);
-PlayExplosion(position);
+```diff
+- // The effect plays twice for the player who raised it
+- MagicEvents.VECTOR3["Explosion"].Raise(position);
+- PlayExplosion(position);
 
-// CORRECT : Only play it in the listener
-MagicEvents.VECTOR3["Explosion"].OnEventRaised += PlayExplosion;
++ // Only play it in the listener
++ MagicEvents.VECTOR3["Explosion"].OnEventRaised += PlayExplosion;
 ```
 
 ---
@@ -195,13 +195,13 @@ loot.Add("Shield");  // P2, at the same time → Sword, Shield
 
 **Don't keep an index around**: when someone removes an item, the others move.
 
-```csharp
-// WRONG : If "Sword" was picked up, index 0 is now "Shield"
-loot.SetAt(0, "Golden Sword");
+```diff
+- // If "Sword" was picked up, index 0 is now "Shield"
+- loot.SetAt(0, "Golden Sword");
 
-// CORRECT
-int index = loot.FindIndex(item => item == "Sword");
-if (index >= 0) loot.SetAt(index, "Golden Sword");
++ // Find it right before using it
++ int index = loot.FindIndex(item => item == "Sword");
++ if (index >= 0) loot.SetAt(index, "Golden Sword");
 ```
 
 - **Remove player's items when they leave** (off by default): when checked, the items a player added are removed when they disconnect. Handy for one line per player.
@@ -212,14 +212,14 @@ if (index >= 0) loot.SetAt(index, "Golden Sword");
 
 To send a change, **assign the value again**:
 
-```csharp
-// WRONG : Only changes your local copy
-MagicVariables.BOSSSTATE["Boss"].Value.hp -= 10;
+```diff
+- // Only changes your local copy
+- MagicVariables.BOSSSTATE["Boss"].Value.hp -= 10;
 
-// CORRECT
-var boss = MagicVariables.BOSSSTATE["Boss"].Value;
-boss.hp -= 10;
-MagicVariables.BOSSSTATE["Boss"].Value = boss;
++ // Assign it again to send it
++ var boss = MagicVariables.BOSSSTATE["Boss"].Value;
++ boss.hp -= 10;
++ MagicVariables.BOSSSTATE["Boss"].Value = boss;
 ```
 
 In **Custom Types > Network fields**, pick a mode for each public field:
