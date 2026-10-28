@@ -13,17 +13,17 @@ namespace MagicLinks.Tests
         {
             public bool IsActive { get; set; } = true;
             public readonly List<T> Requests = new List<T>();
-            public TaskCompletionSource<MagicSetResult> Pending = new TaskCompletionSource<MagicSetResult>();
+            public TaskCompletionSource<MagicWriteResult> Pending = new TaskCompletionSource<MagicWriteResult>();
 
             public void RequestSet(T value) => Requests.Add(value);
 
-            public Task<MagicSetResult> RequestSetAsync(T value)
+            public Task<MagicWriteResult> RequestSetAsync(T value)
             {
                 Requests.Add(value);
                 return Pending.Task;
             }
 
-            public Task<MagicSetResult> RequestTrySetAsync(T expected, T value)
+            public Task<MagicWriteResult> RequestSetIfAsync(T expected, T value)
             {
                 Requests.Add(value);
                 return Pending.Task;
@@ -35,17 +35,17 @@ namespace MagicLinks.Tests
             public bool IsActive { get; set; } = true;
             public readonly List<string> Requests = new List<string>();
 
-            public Task<MagicSetResult> Record(string request)
+            public Task<MagicWriteResult> Record(string request)
             {
                 Requests.Add(request);
-                return Task.FromResult(MagicSetResult.Success);
+                return Task.FromResult(MagicWriteResult.Accepted);
             }
 
-            public Task<MagicSetResult> RequestAdd(T item, bool wantResult) => Record($"Add {item}");
-            public Task<MagicSetResult> RequestRemoveAt(int index, T expected, bool wantResult) => Record($"RemoveAt {index} {expected}");
-            public Task<MagicSetResult> RequestSetAt(int index, T expected, T item, bool wantResult) => Record($"SetAt {index} {expected} {item}");
-            public Task<MagicSetResult> RequestModifyAt(int index, T current, System.Action<T> update, bool wantResult) => Record($"ModifyAt {index}");
-            public Task<MagicSetResult> RequestClear(bool wantResult) => Record("Clear");
+            public Task<MagicWriteResult> RequestAdd(T item, bool wantResult) => Record($"Add {item}");
+            public Task<MagicWriteResult> RequestRemoveAt(int index, T expected, bool wantResult) => Record($"RemoveAt {index} {expected}");
+            public Task<MagicWriteResult> RequestSetAt(int index, T expected, T item, bool wantResult) => Record($"SetAt {index} {expected} {item}");
+            public Task<MagicWriteResult> RequestModifyAt(int index, T current, System.Action<T> update, bool wantResult) => Record($"ModifyAt {index}");
+            public Task<MagicWriteResult> RequestClear(bool wantResult) => Record("Clear");
         }
 
         private class FakeEventSync<T> : IMagicEventSync<T>
@@ -62,34 +62,34 @@ namespace MagicLinks.Tests
         {
             var observable = new MagicVariableObservable<int>();
 
-            Task<MagicSetResult> task = observable.SetAsync(3);
+            Task<MagicWriteResult> task = observable.SetAsync(3);
 
             Assert.IsTrue(task.IsCompleted);
-            Assert.AreEqual(MagicSetResult.Success, task.Result);
+            Assert.AreEqual(MagicWriteResult.Accepted, task.Result);
             Assert.AreEqual(3, observable.Value);
         }
 
         [Test]
-        public void TrySetAsync_Offline_SucceedsWhenExpectedMatches()
+        public void SetIfAsync_Offline_SucceedsWhenExpectedMatches()
         {
             var observable = new MagicVariableObservable<int>(-1);
 
-            Task<MagicSetResult> task = observable.TrySetAsync(-1, 7);
+            Task<MagicWriteResult> task = observable.SetIfAsync(-1, 7);
 
-            Assert.AreEqual(MagicSetResult.Success, task.Result);
+            Assert.AreEqual(MagicWriteResult.Accepted, task.Result);
             Assert.AreEqual(7, observable.Value);
         }
 
         [Test]
-        public void TrySetAsync_Offline_RejectedWhenExpectedDiffers()
+        public void SetIfAsync_Offline_RefusedWhenExpectedDiffers()
         {
             var observable = new MagicVariableObservable<int>(2);
             int changes = 0;
             observable.OnValueChanged += _ => changes++;
 
-            Task<MagicSetResult> task = observable.TrySetAsync(-1, 7);
+            Task<MagicWriteResult> task = observable.SetIfAsync(-1, 7);
 
-            Assert.AreEqual(MagicSetResult.Rejected, task.Result);
+            Assert.AreEqual(MagicWriteResult.Refused, task.Result);
             Assert.AreEqual(2, observable.Value);
             Assert.AreEqual(0, changes);
         }
@@ -140,17 +140,17 @@ namespace MagicLinks.Tests
         }
 
         [Test]
-        public void ActiveSync_TrySetAsync_WaitsForTheAuthority()
+        public void ActiveSync_SetIfAsync_WaitsForTheAuthority()
         {
             var observable = new MagicVariableObservable<int>(-1);
             var sync = new FakeVariableSync<int>();
             observable.Sync = sync;
 
-            Task<MagicSetResult> task = observable.TrySetAsync(-1, 4);
+            Task<MagicWriteResult> task = observable.SetIfAsync(-1, 4);
 
             Assert.IsFalse(task.IsCompleted);
-            sync.Pending.SetResult(MagicSetResult.Disconnected);
-            Assert.AreEqual(MagicSetResult.Disconnected, task.Result);
+            sync.Pending.SetResult(MagicWriteResult.Disconnected);
+            Assert.AreEqual(MagicWriteResult.Disconnected, task.Result);
         }
 
         [Test]
@@ -198,38 +198,38 @@ namespace MagicLinks.Tests
             CollectionAssert.AreEqual(new[] { "added a", "removed a" }, events);
         }
 
-        // --- Validators (offline, they run locally)
+        // --- Write rules (offline, they run locally)
 
         [Test]
-        public void VariableValidator_Offline_RejectsRefusedWrites()
+        public void VariableWriteRule_Offline_RefusesWrites()
         {
             var observable = new MagicVariableObservable<int>(1);
-            observable.Validator = (clientId, current, value) => value >= 0;
+            observable.WriteRule = (fromClientId, current, value) => value >= 0;
 
             observable.Value = -5;
-            Task<MagicSetResult> task = observable.SetAsync(-1);
+            Task<MagicWriteResult> task = observable.SetAsync(-1);
 
             Assert.AreEqual(1, observable.Value);
-            Assert.AreEqual(MagicSetResult.Rejected, task.Result);
-            Assert.AreEqual(MagicSetResult.Success, observable.SetAsync(3).Result);
+            Assert.AreEqual(MagicWriteResult.Refused, task.Result);
+            Assert.AreEqual(MagicWriteResult.Accepted, observable.SetAsync(3).Result);
             Assert.AreEqual(3, observable.Value);
         }
 
         [Test]
-        public void ListValidator_Offline_SeesTheChangeAndTheCurrentItems()
+        public void ListWriteRule_Offline_SeesTheChangeAndTheCurrentItems()
         {
             var interfaces = new MagicListVariableObservable<string>();
             interfaces.Add("Radio");
             interfaces.Add("");
 
             // Nobody can open an interface another entry already has open
-            interfaces.Validator = (clientId, change, items) =>
+            interfaces.WriteRule = (fromClientId, change, items) =>
                 change.Operation != MagicListOperation.SetAt
                 || string.IsNullOrEmpty(change.Item)
                 || items.Where((item, i) => i != change.Index).All(item => item != change.Item);
 
-            Assert.AreEqual(MagicSetResult.Rejected, interfaces.SetAtAsync(1, "Radio").Result);
-            Assert.AreEqual(MagicSetResult.Success, interfaces.SetAtAsync(1, "Nav").Result);
+            Assert.AreEqual(MagicWriteResult.Refused, interfaces.SetAtAsync(1, "Radio").Result);
+            Assert.AreEqual(MagicWriteResult.Accepted, interfaces.SetAtAsync(1, "Nav").Result);
             CollectionAssert.AreEqual(new[] { "Radio", "Nav" }, interfaces.Value);
         }
 
@@ -238,10 +238,10 @@ namespace MagicLinks.Tests
         {
             var list = new MagicListVariableObservable<int>();
 
-            Assert.AreEqual(MagicSetResult.Success, list.AddAsync(4).Result);
-            Assert.AreEqual(MagicSetResult.Rejected, list.RemoveAsync(99).Result);
+            Assert.AreEqual(MagicWriteResult.Accepted, list.AddAsync(4).Result);
+            Assert.AreEqual(MagicWriteResult.Refused, list.RemoveAsync(99).Result);
             Assert.AreEqual(0, list.FindIndex(i => i == 4));
-            Assert.AreEqual(MagicSetResult.Success, list.RemoveAtAsync(0).Result);
+            Assert.AreEqual(MagicWriteResult.Accepted, list.RemoveAtAsync(0).Result);
             Assert.IsEmpty(list.Value);
         }
 

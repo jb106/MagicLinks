@@ -31,7 +31,7 @@ namespace MagicLinks.Network
             Event = 4,
             Set = 5,
             SetAsync = 6,
-            TrySet = 7,
+            SetIf = 7,
             Raise = 8,
             Response = 9,
             ListRequest = 10,
@@ -54,8 +54,8 @@ namespace MagicLinks.Network
         private readonly List<Entry> _orderedEntries = new List<Entry>();
         private readonly HashSet<ulong> _readyClients = new HashSet<ulong>();
         private readonly List<ulong> _broadcastTargets = new List<ulong>();
-        private readonly Dictionary<uint, TaskCompletionSource<MagicSetResult>> _pendingRequests =
-            new Dictionary<uint, TaskCompletionSource<MagicSetResult>>();
+        private readonly Dictionary<uint, TaskCompletionSource<MagicWriteResult>> _pendingRequests =
+            new Dictionary<uint, TaskCompletionSource<MagicWriteResult>>();
 
         private uint _nextRequestId;
         private bool _connectedToServer;
@@ -162,9 +162,9 @@ namespace MagicLinks.Network
             _connectedToServer = false;
 
             // Nobody will answer anymore: release every awaiting caller.
-            List<TaskCompletionSource<MagicSetResult>> pending = new List<TaskCompletionSource<MagicSetResult>>(_pendingRequests.Values);
+            List<TaskCompletionSource<MagicWriteResult>> pending = new List<TaskCompletionSource<MagicWriteResult>>(_pendingRequests.Values);
             _pendingRequests.Clear();
-            foreach (TaskCompletionSource<MagicSetResult> request in pending) request.TrySetResult(MagicSetResult.Disconnected);
+            foreach (TaskCompletionSource<MagicWriteResult> request in pending) request.TrySetResult(MagicWriteResult.Disconnected);
         }
 
         internal void OnClientConnected(ulong clientId)
@@ -223,18 +223,18 @@ namespace MagicLinks.Network
 
             // 0 means the client does not wait for an answer.
             uint requestId = 0;
-            if (op == Op.SetAsync || op == Op.TrySet || op == Op.ListRequest) reader.ReadValueSafe(out requestId);
+            if (op == Op.SetAsync || op == Op.SetIf || op == Op.ListRequest) reader.ReadValueSafe(out requestId);
 
             reader.ReadValueSafe(out ushort id);
 
             if (_entries.TryGetValue(id, out Entry entry) == false)
             {
                 Debug.LogWarning($"[MagicLinks] Client {senderId} sent a request for unknown network id {id}.");
-                if (requestId != 0) SendResponse(senderId, requestId, MagicSetResult.Rejected);
+                if (requestId != 0) SendResponse(senderId, requestId, MagicWriteResult.Refused);
                 return;
             }
 
-            MagicSetResult result;
+            MagicWriteResult result;
 
             try
             {
@@ -244,8 +244,8 @@ namespace MagicLinks.Network
                     case Op.SetAsync:
                         result = entry.ServerHandleSet(senderId, reader);
                         break;
-                    case Op.TrySet:
-                        result = entry.ServerHandleTrySet(senderId, reader);
+                    case Op.SetIf:
+                        result = entry.ServerHandleSetIf(senderId, reader);
                         break;
                     case Op.Raise:
                         entry.ServerHandleRaise(senderId, reader);
@@ -255,14 +255,14 @@ namespace MagicLinks.Network
                         break;
                     default:
                         Debug.LogWarning($"[MagicLinks] Unexpected message {op} from client {senderId}.");
-                        result = MagicSetResult.Rejected;
+                        result = MagicWriteResult.Refused;
                         break;
                 }
             }
             catch (Exception e)
             {
                 Debug.LogError($"[MagicLinks] Failed to apply '{entry.Name}' from client {senderId}: {e}");
-                result = MagicSetResult.Rejected;
+                result = MagicWriteResult.Refused;
             }
 
             // Sent after the state broadcast: when the caller's await resumes, the new value is already applied there.
@@ -329,8 +329,8 @@ namespace MagicLinks.Network
                 case Op.Response:
                     reader.ReadValueSafe(out uint requestId);
                     reader.ReadValueSafe(out byte result);
-                    if (_pendingRequests.Remove(requestId, out TaskCompletionSource<MagicSetResult> request))
-                        request.TrySetResult((MagicSetResult)result);
+                    if (_pendingRequests.Remove(requestId, out TaskCompletionSource<MagicWriteResult> request))
+                        request.TrySetResult((MagicWriteResult)result);
                     break;
                 default:
                     Debug.LogWarning($"[MagicLinks] Unexpected message {op} from the server.");
@@ -388,7 +388,7 @@ namespace MagicLinks.Network
             _networkManager.CustomMessagingManager.SendNamedMessage(MessageName, _broadcastTargets, writer, Delivery);
         }
 
-        private void SendResponse(ulong clientId, uint requestId, MagicSetResult result)
+        private void SendResponse(ulong clientId, uint requestId, MagicWriteResult result)
         {
             using FastBufferWriter writer = CreateWriter(Op.Response);
             writer.WriteValueSafe(requestId);
@@ -396,13 +396,13 @@ namespace MagicLinks.Network
             SendTo(clientId, writer);
         }
 
-        private static readonly Task<MagicSetResult> SentTask = Task.FromResult(MagicSetResult.Success);
+        private static readonly Task<MagicWriteResult> SentTask = Task.FromResult(MagicWriteResult.Accepted);
 
         /// <summary>
         /// Sends a request to the server and returns a task completed by its response.
         /// Without <paramref name="wantResult"/>, no answer is asked for and the returned task is already completed.
         /// </summary>
-        internal Task<MagicSetResult> SendRequest(Op op, ushort id, Action<FastBufferWriter> writePayload, bool wantResult = true)
+        internal Task<MagicWriteResult> SendRequest(Op op, ushort id, Action<FastBufferWriter> writePayload, bool wantResult = true)
         {
             if (wantResult == false)
             {
@@ -417,8 +417,8 @@ namespace MagicLinks.Network
             uint requestId = ++_nextRequestId;
             if (requestId == 0) requestId = ++_nextRequestId;
 
-            TaskCompletionSource<MagicSetResult> request =
-                new TaskCompletionSource<MagicSetResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+            TaskCompletionSource<MagicWriteResult> request =
+                new TaskCompletionSource<MagicWriteResult>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             try
             {
@@ -431,7 +431,7 @@ namespace MagicLinks.Network
             catch (Exception e)
             {
                 Debug.LogError($"[MagicLinks] Failed to send a request: {e}");
-                return Task.FromResult(MagicSetResult.Rejected);
+                return Task.FromResult(MagicWriteResult.Refused);
             }
 
             _pendingRequests.Add(requestId, request);
@@ -476,11 +476,11 @@ namespace MagicLinks.Network
 
             internal virtual void WriteState(FastBufferWriter writer) => throw NotSupported();
             internal virtual void ClientApplyState(FastBufferReader reader) => throw NotSupported();
-            internal virtual MagicSetResult ServerHandleSet(ulong senderId, FastBufferReader reader) => throw NotSupported();
-            internal virtual MagicSetResult ServerHandleTrySet(ulong senderId, FastBufferReader reader) => throw NotSupported();
+            internal virtual MagicWriteResult ServerHandleSet(ulong senderId, FastBufferReader reader) => throw NotSupported();
+            internal virtual MagicWriteResult ServerHandleSetIf(ulong senderId, FastBufferReader reader) => throw NotSupported();
             internal virtual void ServerHandleRaise(ulong senderId, FastBufferReader reader) => throw NotSupported();
             internal virtual void ClientApplyEvent(FastBufferReader reader) => throw NotSupported();
-            internal virtual MagicSetResult ServerHandleListRequest(ulong senderId, FastBufferReader reader) => throw NotSupported();
+            internal virtual MagicWriteResult ServerHandleListRequest(ulong senderId, FastBufferReader reader) => throw NotSupported();
             internal virtual void ClientApplyListChange(FastBufferReader reader) => throw NotSupported();
 
             private Exception NotSupported() => new InvalidOperationException($"'{Name}' does not support this operation.");
@@ -541,15 +541,15 @@ namespace MagicLinks.Network
                 Session.SendToServer(writer);
             }
 
-            public Task<MagicSetResult> RequestSetAsync(T value)
+            public Task<MagicWriteResult> RequestSetAsync(T value)
             {
                 if (Session.IsServer)
                     return Task.FromResult(ServerWrite(value, NetworkManager.ServerClientId));
 
                 bool sameInstance = IsSameInstance(value);
-                if (sameInstance == false && CommitLocalOnlyChange(value)) return Task.FromResult(MagicSetResult.Success);
+                if (sameInstance == false && CommitLocalOnlyChange(value)) return Task.FromResult(MagicWriteResult.Accepted);
 
-                if (Session.CanSendToServer(Name) == false) return Task.FromResult(MagicSetResult.Disconnected);
+                if (Session.CanSendToServer(Name) == false) return Task.FromResult(MagicWriteResult.Disconnected);
 
                 RememberLocalWrite(value);
 
@@ -557,16 +557,16 @@ namespace MagicLinks.Network
                 return Session.SendRequest(Op.SetAsync, Id, writer => _serializer.WritePatch(writer, from, value));
             }
 
-            public Task<MagicSetResult> RequestTrySetAsync(T expected, T value)
+            public Task<MagicWriteResult> RequestSetIfAsync(T expected, T value)
             {
                 if (Session.IsServer)
-                    return Task.FromResult(ServerTrySet(expected, value, NetworkManager.ServerClientId));
+                    return Task.FromResult(ServerSetIf(expected, value, NetworkManager.ServerClientId));
 
-                if (Session.CanSendToServer(Name) == false) return Task.FromResult(MagicSetResult.Disconnected);
+                if (Session.CanSendToServer(Name) == false) return Task.FromResult(MagicWriteResult.Disconnected);
 
                 RememberLocalWrite(value);
 
-                return Session.SendRequest(Op.TrySet, Id, writer =>
+                return Session.SendRequest(Op.SetIf, Id, writer =>
                 {
                     _serializer.Write(writer, expected);
                     _serializer.Write(writer, value);
@@ -620,40 +620,40 @@ namespace MagicLinks.Network
                     _observable.Commit(value);
             }
 
-            /// <summary>A write asked by a peer (or the host): the validator decides before anything is applied.</summary>
-            private MagicSetResult ServerWrite(T value, ulong writerId)
+            /// <summary>A write asked by a peer (or the host): the write rule decides before anything is applied.</summary>
+            private MagicWriteResult ServerWrite(T value, ulong writerId)
             {
-                if (MagicLinksNetwork.RunValidator(_observable.Validator, writerId, _observable.Value, value) == false)
-                    return MagicSetResult.Rejected;
+                if (MagicLinksNetwork.RunWriteRule(_observable.WriteRule, writerId, _observable.Value, value) == false)
+                    return MagicWriteResult.Refused;
 
                 ServerCommit(value, writerId);
-                return MagicSetResult.Success;
+                return MagicWriteResult.Accepted;
             }
 
-            private MagicSetResult ServerTrySet(T expected, T value, ulong writerId)
+            private MagicWriteResult ServerSetIf(T expected, T value, ulong writerId)
             {
-                if (_serializer.AreEqual(_observable.Value, expected) == false) return MagicSetResult.Rejected;
+                if (_serializer.AreEqual(_observable.Value, expected) == false) return MagicWriteResult.Refused;
 
                 return ServerWrite(value, writerId);
             }
 
-            internal override MagicSetResult ServerHandleSet(ulong senderId, FastBufferReader reader)
+            internal override MagicWriteResult ServerHandleSet(ulong senderId, FastBufferReader reader)
             {
                 T value = _serializer.ReadPatch(reader, _observable.Value);
 
-                if (Session.IsClientWriteAllowed(senderId, Name) == false) return MagicSetResult.Rejected;
+                if (Session.IsClientWriteAllowed(senderId, Name) == false) return MagicWriteResult.Refused;
 
                 return ServerWrite(value, senderId);
             }
 
-            internal override MagicSetResult ServerHandleTrySet(ulong senderId, FastBufferReader reader)
+            internal override MagicWriteResult ServerHandleSetIf(ulong senderId, FastBufferReader reader)
             {
                 T expected = _serializer.Read(reader, _observable.Value);
                 T value = _serializer.Read(reader, _observable.Value);
 
-                if (Session.IsClientWriteAllowed(senderId, Name) == false) return MagicSetResult.Rejected;
+                if (Session.IsClientWriteAllowed(senderId, Name) == false) return MagicWriteResult.Refused;
 
-                return ServerTrySet(expected, value, senderId);
+                return ServerSetIf(expected, value, senderId);
             }
 
             internal override void WriteState(FastBufferWriter writer) => _serializer.Write(writer, _observable.Value);
@@ -698,11 +698,11 @@ namespace MagicLinks.Network
         /// <summary>
         /// A list is synchronized operation by operation, so that two peers adding items at the same
         /// time both get their item in. The server resolves every operation to an index, checks the
-        /// list's validator, applies it and sends it back.
+        /// list's write rule, applies it and sends it back.
         /// </summary>
         private sealed class ListEntry<T> : Entry, IMagicListSync<T>
         {
-            private static readonly Task<MagicSetResult> DisconnectedTask = Task.FromResult(MagicSetResult.Disconnected);
+            private static readonly Task<MagicWriteResult> DisconnectedTask = Task.FromResult(MagicWriteResult.Disconnected);
 
             private readonly MagicListVariableObservable<T> _observable;
             private readonly MagicNetSerializer<T> _item;
@@ -733,14 +733,14 @@ namespace MagicLinks.Network
 
             // --- Requests coming from local game code
 
-            public Task<MagicSetResult> RequestAdd(T item, bool wantResult)
+            public Task<MagicWriteResult> RequestAdd(T item, bool wantResult)
             {
                 if (Session.IsServer) return Task.FromResult(ServerAdd(item, NetworkManager.ServerClientId));
 
                 return SendRequest(ListOp.Add, wantResult, writer => _item.Write(writer, item));
             }
 
-            public Task<MagicSetResult> RequestRemoveAt(int index, T expected, bool wantResult)
+            public Task<MagicWriteResult> RequestRemoveAt(int index, T expected, bool wantResult)
             {
                 if (Session.IsServer) return Task.FromResult(ServerRemoveAt(index, expected, NetworkManager.ServerClientId));
 
@@ -751,7 +751,7 @@ namespace MagicLinks.Network
                 });
             }
 
-            public Task<MagicSetResult> RequestSetAt(int index, T expected, T item, bool wantResult)
+            public Task<MagicWriteResult> RequestSetAt(int index, T expected, T item, bool wantResult)
             {
                 if (Session.IsServer) return Task.FromResult(ServerSetAt(index, expected, item, NetworkManager.ServerClientId));
 
@@ -763,9 +763,9 @@ namespace MagicLinks.Network
                 });
             }
 
-            public Task<MagicSetResult> RequestModifyAt(int index, T current, Action<T> update, bool wantResult)
+            public Task<MagicWriteResult> RequestModifyAt(int index, T current, Action<T> update, bool wantResult)
             {
-                if (Session.IsServer && _observable.Validator == null)
+                if (Session.IsServer && _observable.WriteRule == null)
                 {
                     // Same as offline: the item is modified in place, then sent to everyone.
                     update(current);
@@ -778,14 +778,14 @@ namespace MagicLinks.Network
                 return RequestSetAt(index, current, copy, wantResult);
             }
 
-            public Task<MagicSetResult> RequestClear(bool wantResult)
+            public Task<MagicWriteResult> RequestClear(bool wantResult)
             {
                 if (Session.IsServer) return Task.FromResult(ServerClear(NetworkManager.ServerClientId));
 
                 return SendRequest(ListOp.Clear, wantResult, null);
             }
 
-            private Task<MagicSetResult> SendRequest(ListOp op, bool wantResult, Action<FastBufferWriter> writePayload)
+            private Task<MagicWriteResult> SendRequest(ListOp op, bool wantResult, Action<FastBufferWriter> writePayload)
             {
                 if (Session.CanSendToServer(Name) == false) return DisconnectedTask;
 
@@ -806,7 +806,7 @@ namespace MagicLinks.Network
 
             // --- Server side
 
-            internal override MagicSetResult ServerHandleListRequest(ulong senderId, FastBufferReader reader)
+            internal override MagicWriteResult ServerHandleListRequest(ulong senderId, FastBufferReader reader)
             {
                 reader.ReadValueSafe(out byte op);
 
@@ -815,14 +815,14 @@ namespace MagicLinks.Network
                     case ListOp.Add:
                     {
                         T item = _item.Read(reader, default);
-                        if (Session.IsClientWriteAllowed(senderId, Name) == false) return MagicSetResult.Rejected;
+                        if (Session.IsClientWriteAllowed(senderId, Name) == false) return MagicWriteResult.Refused;
                         return ServerAdd(item, senderId);
                     }
                     case ListOp.RemoveAt:
                     {
                         reader.ReadValueSafe(out int index);
                         T expected = _item.Read(reader, default);
-                        if (Session.IsClientWriteAllowed(senderId, Name) == false) return MagicSetResult.Rejected;
+                        if (Session.IsClientWriteAllowed(senderId, Name) == false) return MagicWriteResult.Refused;
                         return ServerRemoveAt(index, expected, senderId);
                     }
                     case ListOp.SetAt:
@@ -830,11 +830,11 @@ namespace MagicLinks.Network
                         reader.ReadValueSafe(out int index);
                         T expected = _item.Read(reader, default);
                         T item = _item.Read(reader, ValueAt(index));
-                        if (Session.IsClientWriteAllowed(senderId, Name) == false) return MagicSetResult.Rejected;
+                        if (Session.IsClientWriteAllowed(senderId, Name) == false) return MagicWriteResult.Refused;
                         return ServerSetAt(index, expected, item, senderId);
                     }
                     case ListOp.Clear:
-                        if (Session.IsClientWriteAllowed(senderId, Name) == false) return MagicSetResult.Rejected;
+                        if (Session.IsClientWriteAllowed(senderId, Name) == false) return MagicWriteResult.Refused;
                         return ServerClear(senderId);
                     default:
                         throw new InvalidOperationException($"Unknown list operation {op}.");
@@ -857,38 +857,38 @@ namespace MagicLinks.Network
                 return -1;
             }
 
-            private MagicSetResult ServerAdd(T item, ulong writerId) =>
+            private MagicWriteResult ServerAdd(T item, ulong writerId) =>
                 TryApply(new MagicListChange<T>(MagicListOperation.Add, _observable.Value.Count, item), writerId);
 
-            private MagicSetResult ServerRemoveAt(int index, T expected, ulong writerId)
+            private MagicWriteResult ServerRemoveAt(int index, T expected, ulong writerId)
             {
                 int resolved = ResolveIndex(index, expected);
-                if (resolved < 0) return MagicSetResult.Rejected;
+                if (resolved < 0) return MagicWriteResult.Refused;
 
                 return TryApply(new MagicListChange<T>(MagicListOperation.RemoveAt, resolved, _observable.Value[resolved]), writerId);
             }
 
-            private MagicSetResult ServerSetAt(int index, T expected, T item, ulong writerId)
+            private MagicWriteResult ServerSetAt(int index, T expected, T item, ulong writerId)
             {
                 int resolved = ResolveIndex(index, expected);
-                if (resolved < 0) return MagicSetResult.Rejected;
+                if (resolved < 0) return MagicWriteResult.Refused;
 
                 return TryApply(new MagicListChange<T>(MagicListOperation.SetAt, resolved, item), writerId);
             }
 
-            private MagicSetResult ServerClear(ulong writerId)
+            private MagicWriteResult ServerClear(ulong writerId)
             {
-                if (_observable.Value.Count == 0) return MagicSetResult.Success;
+                if (_observable.Value.Count == 0) return MagicWriteResult.Accepted;
 
                 return TryApply(new MagicListChange<T>(MagicListOperation.Clear, -1, default), writerId);
             }
 
-            private MagicSetResult TryApply(MagicListChange<T> change, ulong writerId)
+            private MagicWriteResult TryApply(MagicListChange<T> change, ulong writerId)
             {
-                if (_observable.IsChangeAllowed(writerId, change) == false) return MagicSetResult.Rejected;
+                if (_observable.IsChangeAllowed(writerId, change) == false) return MagicWriteResult.Refused;
 
                 Apply(change, writerId);
-                return MagicSetResult.Success;
+                return MagicWriteResult.Accepted;
             }
 
             private void Apply(MagicListChange<T> change, ulong writerId)
@@ -943,7 +943,7 @@ namespace MagicLinks.Network
             {
                 if (_removeItemsOnLeave == false) return;
 
-                // A server decision: not subject to the validator.
+                // A server decision: not subject to the write rule.
                 for (int i = _owners.Count - 1; i >= 0; i--)
                 {
                     if (_owners[i] == clientId)

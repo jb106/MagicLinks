@@ -9,27 +9,27 @@ using UnityEngine;
 
 namespace MagicLinks.Network
 {
-    public enum MagicSetResult
+    public enum MagicWriteResult
     {
         /// <summary>The value was applied by the authority and is now visible locally.</summary>
-        Success,
-        /// <summary>The authority refused the write (condition not met, validator refused, item gone).</summary>
-        Rejected,
+        Accepted,
+        /// <summary>The authority refused the write (condition not met, write rule refused, item gone).</summary>
+        Refused,
         /// <summary>The session ended before the authority answered. Nothing can be assumed.</summary>
         Disconnected
     }
 
     /// <summary>
     /// A rule checked where the value is committed (offline, or on the server/host) before accepting a write.
-    /// <paramref name="clientId"/> is the client that asked for it (MagicLinksNetwork.LocalClientId offline or on the host).
+    /// <paramref name="fromClientId"/> is the client that asked for it (MagicLinksNetwork.LocalClientId offline or on the host).
     /// </summary>
-    public delegate bool MagicVariableValidator<T>(ulong clientId, T current, T value);
+    public delegate bool MagicVariableRule<T>(ulong fromClientId, T current, T value);
 
     /// <summary>
     /// A rule checked where the list is committed (offline, or on the server/host) before accepting a change.
     /// <paramref name="items"/> is the list before the change.
     /// </summary>
-    public delegate bool MagicListValidator<T>(ulong clientId, MagicListChange<T> change, IReadOnlyList<T> items);
+    public delegate bool MagicListRule<T>(ulong fromClientId, MagicListChange<T> change, IReadOnlyList<T> items);
 
     public enum MagicListOperation
     {
@@ -64,7 +64,7 @@ namespace MagicLinks.Network
         public static bool IsOnline { get; private set; }
 
         /// <summary>True when offline or when this peer is the server/host.</summary>
-        public static bool IsAuthority => !IsOnline || _isServer;
+        public static bool IsServerOrOffline => !IsOnline || _isServer;
 
         /// <summary>Id of this machine in the session (0 offline and on the host).</summary>
         public static ulong LocalClientId { get; private set; }
@@ -73,7 +73,7 @@ namespace MagicLinks.Network
         /// Raised when the session is ready: on the server when it starts, on a client once connected and
         /// the current values are received. From then on, writes from this machine are accepted.
         /// </summary>
-        public static event Action OnSessionStarted;
+        public static event Action OnSessionReady;
 
         /// <summary>
         /// Raised when the session stops, for any reason (local shutdown, server lost, kicked).
@@ -84,14 +84,14 @@ namespace MagicLinks.Network
 
         private static bool _isServer;
 
-        internal static void NotifySessionStarted(bool isServer, ulong localClientId)
+        internal static void NotifySessionReady(bool isServer, ulong localClientId)
         {
             if (IsOnline) return;
 
             IsOnline = true;
             _isServer = isServer;
             LocalClientId = localClientId;
-            OnSessionStarted?.Invoke();
+            OnSessionReady?.Invoke();
         }
 
         internal static void NotifySessionEnded(string reason)
@@ -110,36 +110,36 @@ namespace MagicLinks.Network
             IsOnline = false;
             _isServer = false;
             LocalClientId = 0;
-            OnSessionStarted = null;
+            OnSessionReady = null;
             OnSessionEnded = null;
         }
 
-        internal static bool RunValidator<T>(MagicVariableValidator<T> validator, ulong clientId, T current, T value)
+        internal static bool RunWriteRule<T>(MagicVariableRule<T> rule, ulong clientId, T current, T value)
         {
-            if (validator == null) return true;
+            if (rule == null) return true;
 
             try
             {
-                return validator(clientId, current, value);
+                return rule(clientId, current, value);
             }
             catch (Exception e)
             {
-                Debug.LogError($"[MagicLinks] A validator threw an exception, the write is rejected: {e}");
+                Debug.LogError($"[MagicLinks] A write rule threw an exception, the write is rejected: {e}");
                 return false;
             }
         }
 
-        internal static bool RunValidator<T>(MagicListValidator<T> validator, ulong clientId, MagicListChange<T> change, IReadOnlyList<T> items)
+        internal static bool RunWriteRule<T>(MagicListRule<T> rule, ulong clientId, MagicListChange<T> change, IReadOnlyList<T> items)
         {
-            if (validator == null) return true;
+            if (rule == null) return true;
 
             try
             {
-                return validator(clientId, change, items);
+                return rule(clientId, change, items);
             }
             catch (Exception e)
             {
-                Debug.LogError($"[MagicLinks] A validator threw an exception, the change is rejected: {e}");
+                Debug.LogError($"[MagicLinks] A write rule threw an exception, the change is rejected: {e}");
                 return false;
             }
         }
@@ -149,8 +149,8 @@ namespace MagicLinks.Network
     {
         bool IsActive { get; }
         void RequestSet(T value);
-        Task<MagicSetResult> RequestSetAsync(T value);
-        Task<MagicSetResult> RequestTrySetAsync(T expected, T value);
+        Task<MagicWriteResult> RequestSetAsync(T value);
+        Task<MagicWriteResult> RequestSetIfAsync(T expected, T value);
     }
 
     /// <summary>
@@ -161,11 +161,11 @@ namespace MagicLinks.Network
     internal interface IMagicListSync<T>
     {
         bool IsActive { get; }
-        Task<MagicSetResult> RequestAdd(T item, bool wantResult);
-        Task<MagicSetResult> RequestRemoveAt(int index, T expected, bool wantResult);
-        Task<MagicSetResult> RequestSetAt(int index, T expected, T item, bool wantResult);
-        Task<MagicSetResult> RequestModifyAt(int index, T current, Action<T> update, bool wantResult);
-        Task<MagicSetResult> RequestClear(bool wantResult);
+        Task<MagicWriteResult> RequestAdd(T item, bool wantResult);
+        Task<MagicWriteResult> RequestRemoveAt(int index, T expected, bool wantResult);
+        Task<MagicWriteResult> RequestSetAt(int index, T expected, T item, bool wantResult);
+        Task<MagicWriteResult> RequestModifyAt(int index, T current, Action<T> update, bool wantResult);
+        Task<MagicWriteResult> RequestClear(bool wantResult);
     }
 
     internal interface IMagicEventSync<T>

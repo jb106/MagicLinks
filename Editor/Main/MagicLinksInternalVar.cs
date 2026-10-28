@@ -373,7 +373,7 @@ namespace MagicLinks
             resetToggle.style.display = showReset ? DisplayStyle.Flex : DisplayStyle.None;
             if (variable.isList)
             {
-                resetToggle.label = "Remove items on leave";
+                resetToggle.label = "Remove player's items when they leave";
                 resetToggle.tooltip = "When a client disconnects, the server removes the items it added (useful for per-player entries).";
             }
             resetToggle.SetValueWithoutNotify(variable.resetOnWriterDisconnect);

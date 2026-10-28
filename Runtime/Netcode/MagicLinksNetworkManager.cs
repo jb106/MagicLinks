@@ -18,9 +18,9 @@ namespace MagicLinks.Network
 
         /// <summary>
         /// Called on the server for every write or event coming from a client: (clientId, link name).
-        /// Return false to reject it. Async requests then complete with MagicSetResult.Rejected.
+        /// Return false to reject it. Async requests then complete with MagicWriteResult.Refused.
         /// </summary>
-        public Func<ulong, string, bool> ClientWriteFilter;
+        public Func<ulong, string, bool> GlobalWriteRule;
 
         private MagicLinksNetworkSession _session;
 
@@ -104,8 +104,8 @@ namespace MagicLinks.Network
             }
 
             _session = new MagicLinksNetworkSession(networkManager,
-                (clientId, linkName) => ClientWriteFilter == null || ClientWriteFilter(clientId, linkName),
-                () => MagicLinksNetwork.NotifySessionStarted(networkManager.IsServer, networkManager.LocalClientId));
+                (clientId, linkName) => GlobalWriteRule == null || GlobalWriteRule(clientId, linkName),
+                () => MagicLinksNetwork.NotifySessionReady(networkManager.IsServer, networkManager.LocalClientId));
 
             MagicLinksNetworkRegistry.Registration?.Invoke(_session);
 

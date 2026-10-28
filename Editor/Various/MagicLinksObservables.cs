@@ -63,9 +63,9 @@ namespace MagicLinks.Observables
         /// <summary>
         /// Optional rule checked before accepting a write, where the value is committed:
         /// offline, or on the server/host for every peer's writes. A refused write is ignored
-        /// (SetAsync / TrySetAsync return Rejected).
+        /// (SetAsync / SetIfAsync return Refused).
         /// </summary>
-        public MagicVariableValidator<T> Validator { get; set; }
+        public MagicVariableRule<T> WriteRule { get; set; }
 
         /// <summary>
         /// Reading is always local. Writing commits locally when offline or on the server,
@@ -114,12 +114,12 @@ namespace MagicLinks.Observables
         /// Same as setting Value, but completes once the authoritative value is applied locally.
         /// Completes immediately when offline or on the server.
         /// </summary>
-        public Task<MagicSetResult> SetAsync(T value)
+        public Task<MagicWriteResult> SetAsync(T value)
         {
             if (Sync != null && Sync.IsActive)
                 return Sync.RequestSetAsync(value);
 
-            return Task.FromResult(TryCommitLocal(value) ? MagicSetResult.Success : MagicSetResult.Rejected);
+            return Task.FromResult(TryCommitLocal(value) ? MagicWriteResult.Accepted : MagicWriteResult.Refused);
         }
 
         /// <summary>
@@ -127,20 +127,20 @@ namespace MagicLinks.Observables
         /// The check and the write happen atomically on the server, so when several peers try at
         /// the same time exactly one of them succeeds.
         /// </summary>
-        public Task<MagicSetResult> TrySetAsync(T expected, T value)
+        public Task<MagicWriteResult> SetIfAsync(T expected, T value)
         {
             if (Sync != null && Sync.IsActive)
-                return Sync.RequestTrySetAsync(expected, value);
+                return Sync.RequestSetIfAsync(expected, value);
 
             if (!_comparer.Equals(_value, expected))
-                return Task.FromResult(MagicSetResult.Rejected);
+                return Task.FromResult(MagicWriteResult.Refused);
 
-            return Task.FromResult(TryCommitLocal(value) ? MagicSetResult.Success : MagicSetResult.Rejected);
+            return Task.FromResult(TryCommitLocal(value) ? MagicWriteResult.Accepted : MagicWriteResult.Refused);
         }
 
         private bool TryCommitLocal(T value)
         {
-            if (MagicLinksNetwork.RunValidator(Validator, MagicLinksNetwork.LocalClientId, _value, value) == false)
+            if (MagicLinksNetwork.RunWriteRule(WriteRule, MagicLinksNetwork.LocalClientId, _value, value) == false)
                 return false;
 
             Commit(value);
@@ -178,13 +178,13 @@ namespace MagicLinks.Observables
 
     /// <summary>
     /// Optional rule checked before accepting a change, where the list is committed: offline, or on the
-    /// server/host for every peer's changes. A refused change is ignored (the Async versions return Rejected).
-    /// ModifyAt / Modify change the item in place, so offline they cannot be validated: prefer SetAt on validated lists.
+    /// server/host for every peer's changes. A refused change is ignored (the Async versions return Refused).
+    /// ModifyAt / Modify change the item in place, so offline they skip the write rule: prefer SetAt on lists with a write rule.
     /// </summary>
-    public MagicListValidator<T> Validator { get; set; }
+    public MagicListRule<T> WriteRule { get; set; }
 
-    private static readonly Task<MagicSetResult> SuccessTask = Task.FromResult(MagicSetResult.Success);
-    private static readonly Task<MagicSetResult> RejectedTask = Task.FromResult(MagicSetResult.Rejected);
+    private static readonly Task<MagicWriteResult> AcceptedTask = Task.FromResult(MagicWriteResult.Accepted);
+    private static readonly Task<MagicWriteResult> RefusedTask = Task.FromResult(MagicWriteResult.Refused);
 
     public int FindIndex(Predicate<T> match) => _buffer.FindIndex(match);
 
@@ -192,9 +192,9 @@ namespace MagicLinks.Observables
     public void Add(T item) => DoAdd(item, false);
 
     /// <summary>Completes once the server applied (or refused) the change. Immediate offline.</summary>
-    public Task<MagicSetResult> AddAsync(T item) => DoAdd(item, true);
+    public Task<MagicWriteResult> AddAsync(T item) => DoAdd(item, true);
 
-    private Task<MagicSetResult> DoAdd(T item, bool wantResult)
+    private Task<MagicWriteResult> DoAdd(T item, bool wantResult)
     {
         if (IsSynced) return Sync.RequestAdd(item, wantResult);
 
@@ -208,23 +208,23 @@ namespace MagicLinks.Observables
         int index = _buffer.IndexOf(item);
         if (index < 0) return false;
 
-        Task<MagicSetResult> result = DoRemoveAt(index, false);
-        return IsSynced || result.Result == MagicSetResult.Success;
+        Task<MagicWriteResult> result = DoRemoveAt(index, false);
+        return IsSynced || result.Result == MagicWriteResult.Accepted;
     }
 
-    public Task<MagicSetResult> RemoveAsync(T item)
+    public Task<MagicWriteResult> RemoveAsync(T item)
     {
         int index = _buffer.IndexOf(item);
-        return index < 0 ? RejectedTask : DoRemoveAt(index, true);
+        return index < 0 ? RefusedTask : DoRemoveAt(index, true);
     }
 
     public void RemoveAt(int index) => DoRemoveAt(index, false);
 
-    public Task<MagicSetResult> RemoveAtAsync(int index) => DoRemoveAt(index, true);
+    public Task<MagicWriteResult> RemoveAtAsync(int index) => DoRemoveAt(index, true);
 
-    private Task<MagicSetResult> DoRemoveAt(int index, bool wantResult)
+    private Task<MagicWriteResult> DoRemoveAt(int index, bool wantResult)
     {
-        if (index < 0 || index >= _buffer.Count) return RejectedTask;
+        if (index < 0 || index >= _buffer.Count) return RefusedTask;
 
         if (IsSynced) return Sync.RequestRemoveAt(index, _buffer[index], wantResult);
 
@@ -233,11 +233,11 @@ namespace MagicLinks.Observables
 
     public void Clear() => DoClear(false);
 
-    public Task<MagicSetResult> ClearAsync() => DoClear(true);
+    public Task<MagicWriteResult> ClearAsync() => DoClear(true);
 
-    private Task<MagicSetResult> DoClear(bool wantResult)
+    private Task<MagicWriteResult> DoClear(bool wantResult)
     {
-        if (_buffer.Count == 0) return SuccessTask;
+        if (_buffer.Count == 0) return AcceptedTask;
 
         if (IsSynced) return Sync.RequestClear(wantResult);
 
@@ -246,11 +246,11 @@ namespace MagicLinks.Observables
 
     public void SetAt(int index, T newItem) => DoSetAt(index, newItem, false);
 
-    public Task<MagicSetResult> SetAtAsync(int index, T newItem) => DoSetAt(index, newItem, true);
+    public Task<MagicWriteResult> SetAtAsync(int index, T newItem) => DoSetAt(index, newItem, true);
 
-    private Task<MagicSetResult> DoSetAt(int index, T newItem, bool wantResult)
+    private Task<MagicWriteResult> DoSetAt(int index, T newItem, bool wantResult)
     {
-        if (index < 0 || index >= _buffer.Count) return RejectedTask;
+        if (index < 0 || index >= _buffer.Count) return RefusedTask;
 
         if (IsSynced) return Sync.RequestSetAt(index, _buffer[index], newItem, wantResult);
 
@@ -259,18 +259,18 @@ namespace MagicLinks.Observables
 
     public void ModifyAt(int index, Action<T> update) => DoModifyAt(index, update, false);
 
-    public Task<MagicSetResult> ModifyAtAsync(int index, Action<T> update) => DoModifyAt(index, update, true);
+    public Task<MagicWriteResult> ModifyAtAsync(int index, Action<T> update) => DoModifyAt(index, update, true);
 
-    private Task<MagicSetResult> DoModifyAt(int index, Action<T> update, bool wantResult)
+    private Task<MagicWriteResult> DoModifyAt(int index, Action<T> update, bool wantResult)
     {
-        if (index < 0 || index >= _buffer.Count) return RejectedTask;
+        if (index < 0 || index >= _buffer.Count) return RefusedTask;
 
         if (IsSynced) return Sync.RequestModifyAt(index, _buffer[index], update, wantResult);
 
         update(_buffer[index]);
         OnItemChanged?.Invoke(_buffer[index]);
         NotifyValueChanged();
-        return SuccessTask;
+        return AcceptedTask;
     }
 
     public void Modify(Predicate<T> match, Action<T> update)
@@ -292,16 +292,16 @@ namespace MagicLinks.Observables
 
     public void Reset() => Clear();
 
-    private Task<MagicSetResult> TryApplyLocal(MagicListChange<T> change)
+    private Task<MagicWriteResult> TryApplyLocal(MagicListChange<T> change)
     {
-        if (IsChangeAllowed(MagicLinksNetwork.LocalClientId, change) == false) return RejectedTask;
+        if (IsChangeAllowed(MagicLinksNetwork.LocalClientId, change) == false) return RefusedTask;
 
         ApplyLocal(change);
-        return SuccessTask;
+        return AcceptedTask;
     }
 
     internal bool IsChangeAllowed(ulong clientId, MagicListChange<T> change) =>
-        MagicLinksNetwork.RunValidator(Validator, clientId, change, Value);
+        MagicLinksNetwork.RunWriteRule(WriteRule, clientId, change, Value);
 
     internal void ApplyLocal(MagicListChange<T> change)
     {

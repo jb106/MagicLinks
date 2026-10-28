@@ -20,7 +20,7 @@
                 <engine:VisualElement name="InitialValueContainer" style="flex-grow: 1; flex-shrink: 1; flex-direction: row; align-items: center; min-width: 80px;" />
             </engine:VisualElement>
             <engine:Toggle label="Networked" name="IsNetworked" tooltip="Synchronized by the server in a network session. Behaves exactly as a local link when offline." class="singleVariableElement" style="flex-grow: 0; flex-shrink: 0; min-width: 160px;" />
-            <engine:Toggle label="Reset on leave" name="ResetOnLeave" tooltip="When the client who last wrote this value disconnects, the server resets it to its value at session start (useful for locks)." class="singleVariableElement" style="flex-grow: 0; flex-shrink: 0; min-width: 160px;" />
+            <engine:Toggle label="Reset when writer leaves" name="ResetOnLeave" tooltip="When the client who last wrote this value disconnects, the server resets it to its value at session start (useful for locks)." class="singleVariableElement" style="flex-grow: 0; flex-shrink: 0; min-width: 160px;" />
         </engine:VisualElement>
     </engine:VisualElement>
 </engine:UXML>
